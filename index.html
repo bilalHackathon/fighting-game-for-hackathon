@@ -1,0 +1,4345 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>2 player battlez</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        canvas {
+        display : block;   
+        margin : auto;
+        }
+    </style>
+</head>
+<body style="background-color:black;">
+
+<script type="text/javascript">
+
+//defining variables
+//variables for input
+var mobile = false;
+var computer = false;
+//variable for out of screen
+var offScreen = 1200;
+//variables for player and map
+var charecter = 'none';
+var charecter2 = 'robot';
+var map = 'none';
+//variables for animation
+var direction = 'none';
+var direction2 = 'none';
+var ultimateDirection = 'left'
+var ultimateDirection2 = 'right'
+//this is here to flip player to and for bot controls
+var playerFlip = true;
+//creating the player health
+var health1 = 200;
+var health2 = 200;
+//variable for attacks
+var punch = 0;
+var punch2 = 0;
+var laser1 = 0;
+var laser11 = 0;
+var laser2 = 0;
+var laser21 = 0;
+var laser111 = 0;
+var laser112 = 0;
+var laser221 = 0;
+var laser222 = 0;
+var down1 = 0;
+var down2 = 0;
+var down21 = 0;
+var down22 = 0;
+//variable for player touching down
+var player1down = false;
+var player2down = false;
+//creating the variable for powerups
+var powerups = 0;
+//creating the variables for mobile controls
+var left1 = false;
+var right1 = false;
+var jump1 = false;
+var attack11 = false;
+var attack12 = false;
+var left2 = false;
+var right2 = false;
+var jump2 = false;
+var attack21 = false;
+var attack22 = false;
+//variables for ai
+var tenCycle = 1;
+var punching = false;
+var cycle120 = 1;
+//variables for knockback
+var knockback1 = false;
+var knockback2 = false;
+var projectileKnockback1Left = false;
+var projectileKnockback1Right = false;
+var projectileKnockback2Left = false;
+var projectileKnockback2Right = false;
+
+//creating the menu
+class Menu extends Phaser.Scene
+{
+    constructor()
+    {
+        super("Menu");
+    }
+    preload()
+    {
+        //loading the font that i like
+        this.load.bitmapFont('hyper', 'hyperdrive.png', 'https://labs.phaser.io/assets/fonts/bitmap/hyperdrive.xml');
+        this.load.image('white', 'white.png');
+        this.load.audio("beepBoop", [ "beep_boop.ogg", "beep_boop.mp3" ]);
+        this.load.audio("home", [ "home.mp3" ]);
+    }
+
+    create()
+    {
+        //adding sound effects
+        this.beepBoop = this.sound.add("beepBoop");
+        this.input.on('pointerdown', function()
+        {
+            this.beepBoop.play();
+        }, this)
+        var musicConfig = {
+            loop: true
+        }
+        this.home = this.sound.add("home");
+        this.home.play(musicConfig);
+        //making the sprites that lets you choose mobile controls
+        this.mobileButton = this.physics.add.sprite(695, 250, 'white').setDisplaySize(50, 50).setTint(0xFF0000).setInteractive({cursor: 'pointer'});
+        this.mobileButton.body.setImmovable(true);
+        this.mobileButton.body.setAllowGravity(false);
+        this.mobileButton2 = this.physics.add.sprite(640, 250, 'white').setDisplaySize(50, 50).setTint(0x00ff00).setInteractive({cursor: 'pointer'}).setVisible(false);
+        this.mobileButton2.body.setImmovable(true);
+        this.mobileButton2.body.setAllowGravity(false);
+        this.mobileButton.on('pointerdown', function()
+        {
+            mobile = true;
+            this.mobileButton2.setVisible(true);
+            this.mobileButton.setVisible(false);
+        }, this)
+        this.mobileButton2.on('pointerdown', function()
+        {
+            mobile = false;
+            this.mobileButton2.setVisible(false);
+            this.mobileButton.setVisible(true);
+        }, this)
+        //making the text
+        this.add.bitmapText(515, 100, 'hyper', '2 PLAYeR BATTleZ', 64).setOrigin(0.5);
+        this.add.bitmapText(515, 250, 'hyper', 'phone/tablet controls:   on   off', 32).setOrigin(0.5);
+        var playFriendText = this.add.bitmapText(515, 300, 'hyper', 'play vs friend', 32).setOrigin(0.5);
+        playFriendText.setInteractive({cursor: 'pointer'});
+        var playComputerText = this.add.bitmapText(515, 350, 'hyper', 'play vs computer', 32).setOrigin(0.5);
+        playComputerText.setInteractive({cursor: 'pointer'});
+        var controlsText = this.add.bitmapText(515, 400, 'hyper', 'controls', 32).setOrigin(0.5);
+        controlsText.setInteractive({cursor: 'pointer'});
+        //making the controls scene start when you click on controls
+        controlsText.on('pointerdown', function()
+        {
+            this.home.stop();
+            this.scene.start('Controls');
+            this.scene.stop('Menu');
+        }, this)
+        //making the choose charecter scene start when you click on the play vs texts
+        playFriendText.on('pointerdown', function()
+        {
+            this.home.stop();
+            computer = false;
+            this.scene.start('ChooseCharecter');
+            this.scene.stop('Menu');
+        }, this)
+        playComputerText.on('pointerdown', function()
+        {
+            this.home.stop();
+            computer = true;
+            this.scene.start('ChooseCharecter');
+            this.scene.stop('Menu');
+        }, this)
+        //making the different texts get big when you hover your mouse over them, exept the mobile controls one
+        textBig(playComputerText);
+        textBig(playFriendText);
+        textBig(controlsText);
+        function textBig(bigText)
+        {
+            bigText.on('pointerover', function()
+            {
+                controlsText.setScale(1);
+                playFriendText.setScale(1);
+                playComputerText.setScale(1);
+                bigText.setScale(1.2);
+            }, this)
+        }
+    }
+
+    update()
+    {
+        //fixing bug where it shows that mobile controls are off when they are on when you go back to this scene
+        if (mobile == true)
+        {
+            this.mobileButton2.setVisible(true);
+            this.mobileButton.setVisible(false);
+        }
+        if (mobile == false)
+        {
+            this.mobileButton2.setVisible(false);
+            this.mobileButton.setVisible(true);
+        }
+    }
+}
+
+//starting the Controls Scene
+class Controls extends Phaser.Scene
+{
+    constructor ()
+    {
+        super("Controls");
+    }
+
+    preload()
+    {
+        //loading the font that i like
+        this.load.bitmapFont('hyper', 'hyperdrive.png', 'https://labs.phaser.io/assets/fonts/bitmap/hyperdrive.xml');
+    }
+
+    create()
+    {
+        //adding music
+        var musicConfig = {
+            loop: true
+        }
+        this.home = this.sound.add("home");
+        this.home.play(musicConfig);
+        //adding sound effects
+        this.beepBoop = this.sound.add("beepBoop");
+        this.input.on('pointerdown', function()
+        {
+            this.beepBoop.play();
+        }, this)
+        //making the text that shows you the controls
+        this.add.bitmapText(515, 100, 'hyper', 'CONTROLS', 64).setOrigin(0.5);
+        var tutorialText1 = this.add.bitmapText(515, 200, 'hyper', ' ', 32).setOrigin(0.5);
+        var tutorialText2 = this.add.bitmapText(515, 250, 'hyper', ' ', 32).setOrigin(0.5);
+        this.add.bitmapText(515, 300, 'hyper', 'attacks are different based on whether you are in the air or not', 32).setOrigin(0.5);
+        if(mobile == true)
+        {
+            tutorialText1.setText('arrows to move');
+            tutorialText2.setText('a for attack 1, b for attack 2');
+        } else {
+            tutorialText1.setText('arrow keys (WASD for player 2) to move');
+            tutorialText2.setText('down arrow (S for player 2) for attack 1, shift (e for player 2) for attack 2');
+        }
+        this.add.bitmapText(515, 350, 'hyper', 'the blue bar represents player 1s health', 32).setOrigin(0.5);
+        this.add.bitmapText(515, 400, 'hyper', 'the red bar represents player 2s health', 32).setOrigin(0.5);
+        this.add.bitmapText(515, 450, 'hyper', 'to prevent spamming, you cannot attack if you are walking', 32).setOrigin(0.5);
+        //making the text that makes you go back to the menu
+        var back = this.add.bitmapText(515, 500, 'hyper', 'click anywhere to go to menu', 32).setOrigin(0.5);
+        var back2 = this.add.bitmapText(0, 50, 'hyper', 'back', 32);
+        back.setInteractive({cursor: 'pointer'});
+        back2.setInteractive({cursor: 'pointer'});
+        back.on('pointerover', function()
+        {
+            back.setScale(1.2);
+        }, this)
+        back.on('pointerdown', function()
+        {
+            this.home.stop();
+            this.scene.start('Menu');
+            this.scene.stop('Controls');
+        }, this)
+        back2.on('pointerover', function()
+        {
+            back2.setScale(1.2);
+        }, this)
+        back2.on('pointerdown', function()
+        {
+            this.home.stop();
+            this.scene.start('Menu');
+            this.scene.stop('Controls');
+        }, this)
+    }
+}
+
+//creating the scene that makes you able to choose your charecter
+class ChooseCharecter extends Phaser.Scene
+{
+    constructor()
+    {
+        super("ChooseCharecter");
+    }
+
+    preload()
+    {
+        //preloading all the charecterWin and charecter display images
+        this.load.image('frogWin', 'frogWin.png');
+        this.load.image('frogDisplay', 'frogLeftWalk1.png');
+        this.load.image('robotWin', 'robotWin.png');
+        this.load.image('robotDisplay', 'robotLeftWalk1.png');
+        this.load.image('superHeroWin', 'superHeroWin.png');
+        this.load.image('superHeroDisplay', 'superHeroLeftWalk1.png');
+        this.load.image('pizzaManWin', 'pizzaManWin.png');
+        this.load.image('pizzaManDisplay', 'pizzaManLeftWalk1.png');
+        this.load.image('puppetWin', 'puppetWin.png');
+        this.load.image('puppetDisplay', 'puppetWalk1.png');
+        this.load.image('ogreWin', 'ogreWin.png');
+        this.load.image('ogreDisplay', 'ogreWalk1.png');
+        //preloading the coverUp image to cover any unwanted images or text
+        this.load.image('coverUp', 'coverUp.png')
+    }
+
+    create()
+    {
+        //adding music
+        var musicConfig = {
+            loop: true
+        }
+        this.home = this.sound.add("home");
+        this.home.play(musicConfig);
+        //adding sound effects
+        this.beepBoop = this.sound.add("beepBoop");
+        this.input.on('pointerdown', function()
+        {
+            this.beepBoop.play();
+        }, this)
+        //creating the title
+        this.add.bitmapText(515, 50, 'hyper', 'CHOOSE YOUR PLAYER', 64).setOrigin(0.5);
+        //creating the images and text for mobile
+        if (mobile == true)
+        {
+            var frogFace = this.add.image(200, 200, 'frogWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(200, 300, 'hyper', 'frog', 32).setOrigin(0.5);
+            var robotFace = this.add.image(500, 200, 'robotWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(500, 300, 'hyper', 'robot', 32).setOrigin(0.5);
+            var superHeroFace = this.add.image(800, 200, 'superHeroWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(800, 300, 'hyper', 'super hero', 32).setOrigin(0.5);
+            var pizzaManFace = this.add.image(200, 400, 'pizzaManWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(200, 500, 'hyper', 'pizza man', 32).setOrigin(0.5);
+            var puppetFace = this.add.image(500, 400, 'puppetWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(500, 500, 'hyper', 'puppet', 32).setOrigin(0.5);
+            var ogreFace = this.add.image(800, 400, 'ogreWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(800, 500, 'hyper', 'ogre', 32).setOrigin(0.5);
+        } else {
+            var frogFace = this.add.image(150, 200, 'frogWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(150, 300, 'hyper', 'frog', 32).setOrigin(0.5);
+            var robotFace = this.add.image(350, 200, 'robotWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(350, 300, 'hyper', 'robot', 32).setOrigin(0.5);
+            var superHeroFace = this.add.image(550, 200, 'superHeroWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(550, 300, 'hyper', 'super hero', 32).setOrigin(0.5);
+            var pizzaManFace = this.add.image(150, 400, 'pizzaManWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(150, 500, 'hyper', 'pizza man', 32).setOrigin(0.5);
+            var puppetFace = this.add.image(350, 400, 'puppetWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(350, 500, 'hyper', 'puppet', 32).setOrigin(0.5);
+            var ogreFace = this.add.image(550, 400, 'ogreWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(550, 500, 'hyper', 'ogre', 32).setOrigin(0.5);
+            //seeing if your mouse went over an image in computer mode and creating the text and image for description
+            frogFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'frogDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'his farts are bioweapons', 32).setOrigin(0.5);
+            }, this)
+            robotFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'robotDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'robot is expertly created', 32).setOrigin(0.5);
+            }, this)
+            superHeroFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'superHeroDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'he is a bodybuilder too', 32).setOrigin(0.5);
+            }, this)
+            pizzaManFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'pizzaManDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'pepperoni power!', 32).setOrigin(0.5);
+            }, this)
+            puppetFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'puppetDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'his master dislikes faliure', 32).setOrigin(0.5);
+            }, this)
+            ogreFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'ogreDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'he is a big ball', 32).setOrigin(0.5);
+            }, this)
+        }
+        //creating the back button
+        var back = this.add.bitmapText(5, 540, 'hyper', 'back', 32).setInteractive({cursor: 'pointer'});
+        back.on('pointerover', function()
+        {
+            back.setScale(1.2);
+        }, this)
+        back.on('pointerdown', function()
+        {
+            this.home.stop();
+           this.scene.start('Menu');
+           this.scene.stop('ChooseCharecter'); 
+        }, this)
+        //making the scene change when you click on an icon
+        frogFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter = 'frog';
+            if (computer == true) 
+            {
+                this.scene.start('ChooseMap');
+            } else {
+                this.scene.start('ChooseCharecter2')
+            }
+            this.scene.stop('ChooseCharecter');
+        }, this)
+        robotFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter = 'robot';
+            if (computer == true) 
+            {
+                this.scene.start('ChooseMap');
+            } else {
+                this.scene.start('ChooseCharecter2')
+            }
+            this.scene.stop('ChooseCharecter');
+        }, this)
+        superHeroFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter = 'superHero';
+            if (computer == true) 
+            {
+                this.scene.start('ChooseMap');
+            } else {
+                this.scene.start('ChooseCharecter2')
+            }
+            this.scene.stop('ChooseCharecter');
+        }, this)
+        pizzaManFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter = 'pizzaMan';
+            if (computer == true) 
+            {
+                this.scene.start('ChooseMap');
+            } else {
+                this.scene.start('ChooseCharecter2')
+            }
+            this.scene.stop('ChooseCharecter');
+        }, this)
+        puppetFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter = 'puppet';
+            if (computer == true) 
+            {
+                this.scene.start('ChooseMap');
+            } else {
+                this.scene.start('ChooseCharecter2')
+            }
+            this.scene.stop('ChooseCharecter');
+        }, this)
+        ogreFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter = 'ogre';
+            if (computer == true) 
+            {
+                this.scene.start('ChooseMap');
+            } else {
+                this.scene.start('ChooseCharecter2')
+            }
+            this.scene.stop('ChooseCharecter');
+        }, this)
+    }
+}
+
+class ChooseCharecter2 extends Phaser.Scene
+{
+    constructor()
+    {
+        super("ChooseCharecter2");
+    }
+
+    preload()
+    {
+        //preloading all the charecterWin and charecter display images
+        this.load.image('frogWin', 'frogWin.png');
+        this.load.image('frogDisplay', 'frogLeftWalk1.png');
+        this.load.image('robotWin', 'robotWin.png');
+        this.load.image('robotDisplay', 'robotLeftWalk1.png');
+        this.load.image('superHeroWin', 'superHeroWin.png');
+        this.load.image('superHeroDisplay', 'superHeroLeftWalk1.png');
+        this.load.image('pizzaManWin', 'pizzaManWin.png');
+        this.load.image('pizzaManDisplay', 'pizzaManLeftWalk1.png');
+        this.load.image('puppetWin', 'puppetWin.png');
+        this.load.image('puppetDisplay', 'puppetWalk1.png');
+        this.load.image('ogreWin', 'ogreWin.png');
+        this.load.image('ogreDisplay', 'ogreWalk1.png');
+        //preloading the coverUp image to cover any unwanted images or text
+        this.load.image('coverUp', 'coverUp.png')
+    }
+
+    create()
+    {
+        //adding music
+        var musicConfig = {
+            loop: true
+        }
+        this.home = this.sound.add("home");
+        this.home.play(musicConfig);
+        //adding sound effects
+        this.beepBoop = this.sound.add("beepBoop");
+        this.input.on('pointerdown', function()
+        {
+            this.beepBoop.play();
+        }, this)
+        //creating the title
+        this.add.bitmapText(515, 50, 'hyper', 'CHOOSE YOUR PLAYER (player 2)', 64).setOrigin(0.5);
+        //creating the images and text for mobile
+        if (mobile == true)
+        {
+            var frogFace = this.add.image(200, 200, 'frogWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(200, 300, 'hyper', 'frog', 32).setOrigin(0.5);
+            var robotFace = this.add.image(500, 200, 'robotWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(500, 300, 'hyper', 'robot', 32).setOrigin(0.5);
+            var superHeroFace = this.add.image(800, 200, 'superHeroWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(800, 300, 'hyper', 'super hero', 32).setOrigin(0.5);
+            var pizzaManFace = this.add.image(200, 400, 'pizzaManWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(200, 500, 'hyper', 'pizza man', 32).setOrigin(0.5);
+            var puppetFace = this.add.image(500, 400, 'puppetWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(500, 500, 'hyper', 'puppet', 32).setOrigin(0.5);
+            var ogreFace = this.add.image(800, 400, 'ogreWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(800, 500, 'hyper', 'ogre', 32).setOrigin(0.5);
+        } else {
+            var frogFace = this.add.image(150, 200, 'frogWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(150, 300, 'hyper', 'frog', 32).setOrigin(0.5);
+            var robotFace = this.add.image(350, 200, 'robotWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(350, 300, 'hyper', 'robot', 32).setOrigin(0.5);
+            var superHeroFace = this.add.image(550, 200, 'superHeroWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(550, 300, 'hyper', 'super hero', 32).setOrigin(0.5);
+            var pizzaManFace = this.add.image(150, 400, 'pizzaManWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(150, 500, 'hyper', 'pizza man', 32).setOrigin(0.5);
+            var puppetFace = this.add.image(350, 400, 'puppetWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(350, 500, 'hyper', 'puppet', 32).setOrigin(0.5);
+            var ogreFace = this.add.image(550, 400, 'ogreWin').setInteractive({cursor: 'pointer'});
+            this.add.bitmapText(550, 500, 'hyper', 'ogre', 32).setOrigin(0.5);
+            //seeing if your mouse went over an image in computer mode and creating the text and image for description
+            frogFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'frogDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'his farts are bioweapons', 32).setOrigin(0.5);
+            }, this)
+            robotFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'robotDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'robot is expertly created', 32).setOrigin(0.5);
+            }, this)
+            superHeroFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'superHeroDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'he is a bodybuilder too', 32).setOrigin(0.5);
+            }, this)
+            pizzaManFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'pizzaManDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'pepperoni power!', 32).setOrigin(0.5);
+            }, this)
+            puppetFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'puppetDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'his master dislikes faliure', 32).setOrigin(0.5);
+            }, this)
+            ogreFace.on('pointerover', function()
+            {
+                this.add.image(970, 500, 'coverUp').setDisplaySize(330, 400);
+                this.add.image(800, 200, 'ogreDisplay').setScale(1.3);
+                this.add.bitmapText(800, 400, 'hyper', 'he is a big ball', 32).setOrigin(0.5);
+            }, this)
+        }
+        //creating the back button
+        var back = this.add.bitmapText(5, 540, 'hyper', 'back', 32).setInteractive({cursor: 'pointer'});
+        back.on('pointerover', function()
+        {
+            back.setScale(1.2);
+        }, this)
+        back.on('pointerdown', function()
+        {
+           this.home.stop();
+           this.scene.start('ChooseCharecter');
+           this.scene.stop('ChooseCharecter2'); 
+        }, this)
+        //making the scene change when you click on an icon
+        frogFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter2 = 'frog';
+            this.scene.start('ChooseMap');
+            this.scene.stop('ChooseCharecter2');
+        }, this)
+        robotFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter2 = 'robot';
+            this.scene.start('ChooseMap');
+            this.scene.stop('ChooseCharecter2');
+        }, this)
+        superHeroFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter2 = 'superHero';
+            this.scene.start('ChooseMap');
+            this.scene.stop('ChooseCharecter2');
+        }, this)
+        pizzaManFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter2 = 'pizzaMan';
+            this.scene.start('ChooseMap');
+            this.scene.stop('ChooseCharecter2');
+        }, this)
+        puppetFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter2 = 'puppet';
+            this.scene.start('ChooseMap');
+            this.scene.stop('ChooseCharecter2');
+        }, this)
+        ogreFace.on('pointerdown', function()
+        {
+            this.home.stop();
+            charecter2 = 'ogre';
+            this.scene.start('ChooseMap');
+            this.scene.stop('ChooseCharecter2');
+        }, this)
+    }
+}
+
+//this is the scene that makes you choose your map
+class ChooseMap extends Phaser.Scene
+{
+    constructor()
+    {
+        super("ChooseMap");
+    }
+
+    preload()
+    {
+        //loading the ai generated map icons (couldnt draw these without help)
+        this.load.image('boxingRing', 'boxingRing.jpeg');
+        this.load.image('burger', 'burger.jpeg');
+        this.load.image('frogTreeHouse', 'frogTreeHouse.jpeg');
+        this.load.image('newYork', 'newYork.jpeg');
+        this.load.image('pizzaPlace', 'pizzarea.jpeg');
+        this.load.image('puppetPalace', 'puppetPalace.jpeg');
+        this.load.image('puppetShow', 'puppetShow.jpeg');
+        this.load.image('robotCity', 'robotCity.jpeg');
+        this.load.image('swamp', 'swamp.jpeg');
+        this.load.image('binary', 'binary.webp');
+    }
+
+    create()
+    {
+        //adding music
+        var musicConfig = {
+            loop: true
+        }
+        this.home = this.sound.add("home");
+        this.home.play(musicConfig);
+        //adding sound effects
+        this.beepBoop = this.sound.add("beepBoop");
+        this.input.on('pointerdown', function()
+        {
+            this.beepBoop.play();
+        }, this)
+        //title of the scene
+        this.add.bitmapText(515, 50, 'hyper', 'CHOOSE YOUR MAP', 64).setOrigin(0.5);
+        //creating the back button
+        var back = this.add.bitmapText(5, 20, 'hyper', 'back', 32).setInteractive({cursor: 'pointer'});
+        back.on('pointerdown', function()
+        {
+            this.home.stop();
+            if (computer == false)
+            {
+                this.scene.start('ChooseCharecter2');
+            } else {
+                this.scene.start('ChooseCharecter');
+            }
+            this.scene.stop('ChooseMap');
+        }, this);
+        //creating the map icons
+        var swampIcon = this.add.image(100, 200, 'swamp').setScale(0.3).setInteractive({cursor: 'pointer'});
+        var swampText = this.add.bitmapText(100, 300, 'hyper', 'swamp', 32).setOrigin(0.5);
+        var robotCityIcon = this.add.image(300, 200, 'robotCity').setScale(0.3).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(300, 300, 'hyper', 'robot city', 32).setOrigin(0.5);
+        var puppetShowIcon = this.add.image(500, 200, 'puppetShow').setScale(0.3).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(500, 300, 'hyper', 'puppet show', 32).setOrigin(0.5);
+        var puppetPalaceIcon = this.add.image(700, 200, 'puppetPalace').setScale(0.3).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(700, 300, 'hyper', 'palace', 32).setOrigin(0.5);
+        var pizzaPlaceIcon = this.add.image(900, 200, 'pizzaPlace').setScale(0.3).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(900, 300, 'hyper', 'pizza place', 32).setOrigin(0.5);
+        var treeHouseIcon = this.add.image(100, 430, 'frogTreeHouse').setScale(0.3).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(100, 530, 'hyper', 'tree house', 32).setOrigin(0.5);
+        var newYorkIcon = this.add.image(300, 430, 'newYork').setScale(0.3).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(300, 530, 'hyper', 'new york', 32).setOrigin(0.5);
+        var binaryIcon = this.add.image(500, 430, 'binary').setDisplaySize(153.6, 153.6).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(500, 530, 'hyper', 'glitched arena', 32).setOrigin(0.5);
+        var burgerIcon = this.add.image(700, 430, 'burger').setScale(0.3).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(700, 530, 'hyper', 'burger', 32).setOrigin(0.5);
+        var boxingRingIcon = this.add.image(900, 430, 'boxingRing').setScale(0.3).setInteractive({cursor: 'pointer'});
+        this.add.bitmapText(900, 530, 'hyper', 'boxing ring', 32).setOrigin(0.5);
+        //making the map icons get big when pointerover
+        bigImage(swampIcon);
+        swampIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'swamp';
+            this.scene.start('Fight');
+            this.scene.stop('ChooseMap');
+        }, this)
+        bigImage(robotCityIcon);
+        robotCityIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'robotCity';
+            this.scene.start('Fight');
+            this.scene.stop('ChooseMap');
+        }, this)
+        bigImage(puppetShowIcon);
+        puppetShowIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'puppetShow';
+            this.scene.stop('ChooseMap');
+            this.scene.start('Fight');
+        }, this)
+        bigImage(puppetPalaceIcon);
+        puppetPalaceIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'puppetPalace';
+            this.scene.start('Fight');
+            this.scene.stop('ChooseMap');
+        }, this)
+        bigImage(pizzaPlaceIcon);
+        pizzaPlaceIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'pizzaPlace';
+            this.scene.start('Fight');
+            this.scene.stop('ChooseMap');
+        }, this)
+        bigImage(treeHouseIcon);
+        treeHouseIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'treeHouse';
+            this.scene.stop('ChooseMap');
+            this.scene.start('Fight');
+        }, this)
+        bigImage(newYorkIcon);
+        newYorkIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'newYork';
+            this.scene.stop('ChooseMap');
+            this.scene.start('Fight');
+        }, this)
+        binaryIcon.on('pointerover', function()
+        {
+            binaryIcon.setDisplaySize(179.2, 179.2);
+            swampIcon.setScale(0.3);
+            robotCityIcon.setScale(0.3);
+            puppetShowIcon.setScale(0.3);
+            pizzaPlaceIcon.setScale(0.3);
+            treeHouseIcon.setScale(0.3);
+            newYorkIcon.setScale(0.3);
+            burgerIcon.setScale(0.3);
+            boxingRingIcon.setScale(0.3);
+            puppetPalaceIcon.setScale(0.3);
+        }, this)
+        binaryIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'binary';
+            this.scene.start('Fight');
+            this.scene.stop('ChooseMap');
+        }, this)
+        bigImage(burgerIcon);
+        burgerIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'burger';
+            this.scene.start('Fight');
+            this.scene.stop('ChooseMap');
+        }, this)
+        bigImage(boxingRingIcon);
+        boxingRingIcon.on('pointerdown', function()
+        {
+            this.home.stop();
+            map = 'boxingRing';
+            this.scene.start('Fight');
+            this.scene.stop('ChooseMap');
+        }, this)
+        function bigImage(imageBig)
+        {
+            imageBig.on('pointerover', function()
+            {
+                swampIcon.setScale(0.3);
+                robotCityIcon.setScale(0.3);
+                puppetShowIcon.setScale(0.3);
+                pizzaPlaceIcon.setScale(0.3);
+                treeHouseIcon.setScale(0.3);
+                newYorkIcon.setScale(0.3);
+                binaryIcon.setDisplaySize(153.6, 153.6);
+                burgerIcon.setScale(0.3);
+                boxingRingIcon.setScale(0.3);
+                puppetPalaceIcon.setScale(0.3);
+                imageBig.setScale(0.34);
+            }, this)
+        }
+    }
+}
+
+class Fight extends Phaser.Scene
+{
+    constructor()
+    {
+        super("Fight");
+    }
+
+    preload()
+    {
+        //loading music
+        if (map == 'boxingRing')
+        {
+            this.load.audio("spiderDance", ["spiderDance.ogg", "spiderDance.mp3"]);
+        }
+        if (map == 'treeHouse')
+        {
+            this.load.audio("hopesAndDreams", ["Hopes-And-Dreams.ogg", "Hopes And Dreams.mp3"]);
+        }
+        if (map == 'burger')
+        {
+            this.load.audio("bonetrousle", ["bonetrousle.ogg", "bonetrousle.mp3"]);
+        }
+        if (map == 'newYork')
+        {
+            this.load.audio("deathByGlamour", ["deathByGlamour.ogg", "deathByGlamour.mp3"]);
+        }
+        if (map == 'puppetShow')
+        {
+            this.load.audio("asgore", ["asgore.ogg", "asgore.mp3"]);
+        }
+        if (map == 'swamp')
+        {
+            this.load.audio("ghostFight", ["ghostFight.ogg", "ghostFight.mp3"]);
+        }
+        if (map == 'pizzaPlace')
+        {
+            this.load.audio("heroBattle", ["Battle-Against-A-True-Hero.ogg", "Battle Against-A True Hero.mp3"]);
+        }
+        if (map == 'puppetPalace')
+        {
+            this.load.audio("lastBreath2", ["lastBreath2.ogg", "lastBreath2.mp3"]);
+        }
+        if (map == 'robotCity')
+        {
+            this.load.audio("metalCrusher", ["metalCrusher.ogg", "metalCrusher.mp3"]);
+        }
+        if (map == 'binary')
+        {
+            this.load.audio("anticipation", ["anticipation.ogg", "anticipation.mp3"]);
+        }
+        this.load.audio("beepBoop", [ "beep_boop.ogg", "beep_boop.mp3" ]);
+        //loading for treehouse
+        if (map == 'treeHouse')
+        {
+            this.load.image('tree', 'tree.png');
+            this.load.image('bush', 'bush.png');
+        }
+        if (map == 'treeHouse' || map == 'boxingRing')
+        {
+            this.load.image('wood', 'wood.png');
+        }
+        //loading sky
+        if (map == 'newYork' || map == 'swamp' || map == 'treeHouse' || map == 'burger' || map == 'boxingRing' || map == 'puppetPalace')
+        {
+            this.load.image('sky', 'sky.png');
+        }
+        //loading for burger
+        if (map == 'burger')
+        {
+            this.load.image('mapBurger', 'mapBurger.png');
+            this.load.image('fries', 'mapFries.png');
+            this.load.image('ketchup', 'ketchup.png');
+        }
+        //loading for the boxing arena
+        if (map == 'boxingRing')
+        {
+            this.load.image('boxingRingBase', 'boxingRingBase.png');
+            this.load.image('boxingRings', 'boxingRings.png');
+            this.load.image('lightBulb', 'lightBulb.png');
+            this.load.image('boxingGloves', 'boxingGloves.png');
+        }
+        //loading the images for the new york arena
+        if (map == 'newYork')
+        {
+            this.load.image('hotDogStand', 'hotDogStand.png');
+            this.load.image('building', 'building.png');
+            this.load.image('brickBarrier', 'brickBarrier.png');
+        }
+        if (map == 'newYork' || map == 'swamp')
+        {
+            this.load.image('brick', 'brick.png');
+        }
+        //loading the images for puppetShow
+        if (map == 'puppetShow')
+        {
+            this.load.image('redBlind', 'redBlinds.png');
+            this.load.image('backDrop', 'backDrop.png');
+            this.load.image('puppetStand', 'puppetStand.png');
+            this.load.image('hand', 'hand.png');
+            this.load.image('puppetDude', 'puppetDude.png');
+            this.load.image('black', 'puppetArm.png');
+        }
+        //loading images for swamp
+        if (map == 'swamp')
+        {
+            this.load.image('swampTree', 'swampTree.png');
+            this.load.image('water', 'water.png');
+            this.load.image('log', 'log.png');
+        }
+        //loading the images for the pizza place
+        if (map == 'pizzaPlace')
+        {
+            this.load.image('pizzaTable', 'pizzaTable.png');
+            this.load.image('pizzaFloor', 'pizzaFloor.png');
+            this.load.image('pizzaGuitar1', 'pizzaGuitar1.png');
+            this.load.image('pizzaGuitar2', 'pizzaGuitar2.png');
+            this.load.image('backDrop', 'backDrop.png');
+            this.load.image('black', 'puppetArm.png');
+        }
+        //loading for the palace 
+        if (map == 'puppetPalace')
+        {
+            this.load.image('palaceBase', 'palaceBase.png');
+            this.load.image('palacePillar', 'palacePillar.png');
+            this.load.image('black', 'puppetArm.png');
+            this.load.image('palacePlatform', 'palacePlatform.png');
+        }
+        //loading for the robot city
+        if (map == 'robotCity')
+        {
+            this.load.image('bigRobot1', 'bigRobot1.png');
+            this.load.image('bigRobot2', 'bigRobot2.png');
+            this.load.image('black', 'puppetArm.png');
+            this.load.image('gear', 'gear.png');
+        }
+        //loading charecters
+        //loading frog
+        if (charecter == 'frog' || charecter2 == 'frog')
+        {
+            this.load.image('frogWalk1', 'frogLeftWalk1.png');
+            this.load.image('frogWalk2', 'frogLeftWalk2.png');
+            this.load.image('frogWalk3', 'frogLeftWalk3.png');
+            this.load.image('frogPunch', 'frogLeftPunch.png');
+            this.load.image('frogSpit', 'frogSpitLeft.png');
+            this.load.image('frogSpits', 'frogSpits.png');
+            this.load.image('frogKick', 'frogLeftKick.png');
+            this.load.image('frogFart', 'frogLeftFart.png');
+        }
+        //loading robot
+        if (charecter == 'robot' || charecter2 == 'robot')
+        {
+            this.load.image('robotWalk1', 'robotLeftWalk1.png');
+            this.load.image('robotWalk2', 'robotLeftWalk2.png');
+            this.load.image('robotWalk3', 'robotLeftWalk3.png');
+            this.load.image('robotWalk4', 'robotLeftWalk4.png');
+            this.load.image('robotPunch', 'robotPunchLeft.png');
+            this.load.image('robotLaser', 'robotLaserLeft.png');
+            this.load.image('robotSuperLaser', 'robotLeftSuperLaser.png');
+            this.load.image('frogSpits', 'frogSpits.png');
+            this.load.image('robotDownAttack', 'robotLeftDownAttack.png');
+        }
+        //loading super hero
+        if (charecter == 'superHero' || charecter2 == 'superHero')
+        {
+            this.load.image('superHeroWalk1', 'superHeroLeftWalk1.png');
+            this.load.image('superHeroWalk2', 'superHeroLeftWalk2.png');
+            this.load.image('superHeroWalk3', 'superHeroLeftWalk3.png');
+            this.load.image('superHeroPunch', 'superHeroLeftPunch.png');
+            this.load.image('superHeroBreath', 'superHeroLeftBreath.png');
+            this.load.image('superHeroFootFire', 'superHeroLeftFootRocket.png');
+            this.load.image('superHeroFootRocket', 'superHeroLeftFootFire.png');
+        }
+        //loading pizza man
+        if (charecter == 'pizzaMan' || charecter2 == 'pizzaMan')
+        {
+            this.load.image('pizzaManWalk1', 'pizzaManLeftWalk1.png');
+            this.load.image('pizzaManWalk2', 'pizzaManLeftWalk2.png');
+            this.load.image('pizzaManWalk3', 'pizzaManLeftWalk3.png');
+            this.load.image('pizzaManPunch', 'pizzaManPunch.png');
+            this.load.image('pizzaManCheese', 'pizzaManCheese.png');
+            this.load.image('cheeseBall', 'cheeseBall.png');
+            this.load.image('pizzaManPepperoni', 'pizzaManPepperoni.png');
+            this.load.image('pizzaManSauce', 'pizzaManSauce.png');
+        }
+        //loading the puppet
+        if (charecter == 'puppet' || charecter2 == 'puppet')
+        {
+            this.load.image('puppetWalk1', 'puppetWalk1.png');
+            this.load.image('puppetWalk2', 'puppetWalk2.png');
+            this.load.image('puppetWalk3', 'puppetWalk3.png');
+            this.load.image('puppetPunch', 'puppetPunch.png');
+            this.load.image('puppetLaser', 'puppetLaser.png');
+            this.load.image('puppetInvert', 'puppetInvert.png');
+            this.load.image('puppetDownAttack', 'puppetDownAttack.png');
+        }
+        //loading the ogre
+        if (charecter == 'ogre' || charecter2 == 'ogre')
+        {
+            this.load.image('ogreWalk1', 'ogreWalk1.png');
+            this.load.image('ogreWalk2', 'ogreWalk2.png');
+            this.load.image('ogreWalk3', 'ogreWalk3.png');
+            this.load.image('ogreKick', 'ogreKick.png');
+            this.load.image('ogreLaser', 'ogreLaser.png');
+            this.load.image('ogreEyeless', 'ogreEyeless.png');
+            this.load.image('ogreEye', 'ogreEye.png');
+            this.load.image('ogreBomb', 'ogreBomb.png');
+            this.load.image('ogreLegfull', 'ogreLegless.png');
+        }
+        //loading the powerups
+        this.load.image('troll', 'troll.png');
+        //loading the charecter tags
+        this.load.image('player1Tag', 'player1Tag.png');
+        this.load.image('player2Tag', 'player2Tag.png');
+        //loading red and blue for the health
+        this.load.image('red', 'red.png');
+        this.load.image('blue', 'blue.png');
+        //loading the images for the player controls buttons
+        this.load.image('a', 'a.png');
+        this.load.image('b', 'b.png');
+        this.load.image('arrow', 'arrow.png');
+        this.load.image('greenarrow', 'greenarrow.png');
+        this.load.image('yellowarrow', 'yellowArrow.png');
+        this.load.image('greena', 'greena.png');
+        this.load.image('yellowa', 'yellowa.png');
+        this.load.image('yellowb', 'yellowb.png');
+        this.load.image('greenb', 'greenb.png');
+    }
+
+    create()
+    {
+        //creating the music configeration
+        var musicConfig = {
+            loop: true
+        }
+        //creating the audio that every map needs
+        this.beepBoop = this.sound.add("beepBoop");
+        //creating the treehouse arena
+        if (map == 'treeHouse')
+        {
+            //adding the music (and stopping it)
+            this.hopesAndDreams = this.sound.add("hopesAndDreams");
+            this.hopesAndDreams.play(musicConfig);
+            //background image and sky
+            this.add.image(515, 290, 'sky').setDisplaySize(1200, 900);
+            this.add.image(515, 290, 'tree').setDisplaySize(700, 580);
+            //bushes
+            var bushes = this.physics.add.staticGroup
+            ({
+                key: 'bush',
+                repeat: 25,
+                setXY: { x: 25, y: 555, stepX: 40 }
+            });
+            var bushes2 = this.physics.add.staticGroup
+            ({
+                key: 'bush',
+                repeat: 20,
+                setXY: { x: 125, y: 25, stepX: 40 }
+            });
+            var bushes3 = this.physics.add.staticGroup
+            ({
+                key: 'bush',
+                repeat: 18,
+                setXY: { x: 175, y: -25, stepX: 40 }
+            });
+            var bushes4 = this.physics.add.staticGroup
+            ({
+                key: 'bush',
+                repeat: 16,
+                setXY: { x: 225, y: -75, stepX: 40 }
+            });
+            var bushes5 = this.physics.add.staticGroup
+            ({
+                key: 'bush',
+                repeat: 14,
+                setXY: { x: 275, y: -125, stepX: 40 }
+            });
+            this.add.image(300, 235, 'bush');
+            this.add.image(300, 210, 'bush');
+            this.add.image(200, 235, 'bush');
+            this.add.image(200, 210, 'bush');
+            //wood
+            var wood = this.physics.add.staticGroup();
+            wood.create(300, 372, 'wood');
+            wood.create(400, 362, 'wood');
+            wood.create(200, 372, 'wood');
+            wood.create(700, 450, 'wood');
+            wood.create(800, 462, 'wood');
+            wood.create(300, 175, 'wood');
+            wood.create(400, 162, 'wood');
+            wood.create(200, 175, 'wood');
+            wood.create(100, 175, 'wood');
+            wood.create(800, 150, 'wood');
+            wood.create(900, 150, 'wood');
+            wood.create(700, 175, 'wood');
+            wood.create(625, 200, 'wood');
+            this.upDownWood = this.physics.add.sprite(515, 325, 'wood');
+            this.upDownWood.body.setImmovable(true);
+            this.upDownWood.body.setAllowGravity(false);
+            this.upDownWood.setVelocityY(-100);
+        }
+        //creating the burger map
+        if (map == 'burger')
+        {
+            //loading music
+            this.bonetrousle = this.sound.add("bonetrousle");
+            this.bonetrousle.play(musicConfig);
+            //background images and sky
+            this.add.image(515, 290, 'sky').setDisplaySize(1200, 900);
+            this.add.image(700, 296, 'mapBurger');
+            this.add.image(200, 396, 'fries');
+            //adding the ketchup
+            var ketchups = this.physics.add.staticGroup
+            ({
+                key: 'ketchup',
+                repeat: 7,
+                setXY: { x: 500, y: 500, stepX: 68, stepY: -4 }
+            });
+            var ketchups3 = this.physics.add.staticGroup
+            ({
+                key: 'ketchup',
+                repeat: 4,
+                setXY: { x: 212, y: 128, stepX: 68 }
+            });
+            var ketchups4 = this.physics.add.staticGroup
+            ({
+                key: 'ketchup',
+                repeat: 20,
+                setXY: { x: 0, y: 564, stepX: 68 }
+            });
+            this.ketchup2 = this.physics.add.sprite(700, 275, 'ketchup');
+            this.ketchup2.body.setImmovable(true);
+            this.ketchup2.body.setAllowGravity(false);
+            this.ketchup2.setVelocityX(100);
+        }
+        //creating the boxing ring arena
+        if (map == 'boxingRing')
+        {
+            //loading music
+            this.spiderDance = this.sound.add("spiderDance");
+            this.spiderDance.play(musicConfig);
+            //creating the boxing ring
+            this.boxingRingBase = this.physics.add.sprite(515, 505, 'boxingRingBase').setScale(0.5);
+            this.boxingRingBase.body.setImmovable(true);
+            this.boxingRingBase.body.setAllowGravity(false);
+            var solids = this.physics.add.group({immovable: true, allowGravity: false});
+            solids.create(400, 150, 'wood').setScale(1.7);
+            solids.create(600, 150, 'wood').setScale(1.7);
+            solids.create(400, 195, 'lightBulb');
+            solids.create(600, 195, 'lightBulb');
+            solids.create(195, 450, 'sky').setTint(0x555555).setDisplaySize(50, 270);
+            solids.create(75, 450, 'sky').setTint(0x555555).setDisplaySize(190, 440);
+            solids.create(836, 450, 'sky').setTint(0x555555).setDisplaySize(50, 270);
+            solids.create(956, 450, 'sky').setTint(0x555555).setDisplaySize(190, 440);
+            this.add.image(931, 400, 'boxingGloves').setScale(0.7);
+            this.add.image(100, 400, 'boxingGloves').setFlipX(true).setScale(0.7);
+            //adding the text for clarification
+            this.add.bitmapText(515, 515, 'hyper', 'WWee BOXING ARENA', 32).setOrigin(0.5);
+        }
+        //creating the newYork arena
+        if (map == 'newYork')
+        {
+            //loading music
+            this.deathByGlamour = this.sound.add("deathByGlamour");
+            this.deathByGlamour.play(musicConfig);
+            //creating objects
+            this.add.image(515, 290, 'sky').setDisplaySize(1200, 900);
+            this.add.image(700, 330, 'building');
+            this.hotDogStand = this.physics.add.image(200, 500, 'hotDogStand');
+            this.hotDogStand.body.setImmovable(true);
+            this.hotDogStand.body.setAllowGravity(false);
+            var bricks = this.physics.add.staticGroup 
+            ({
+                key: 'brick',
+                repeat: 5,
+                setXY: { x: 500, y: 500, stepX: 65, stepY: -4}
+            });
+            var bricks2 = this.physics.add.staticGroup();
+            bricks2.create(890, 480, 'brick');
+            var bricks3 = this.physics.add.staticGroup
+            ({
+                key: 'brick',
+                repeat: 5,
+                setXY: { x: 840, y: 280, stepX: -65, stepY: -4 }
+            });
+            var bricks4 = this.physics.add.staticGroup
+            ({
+                key: 'brick',
+                repeat: 5,
+                setXY: { x: 890, y: 75, stepX: -65 }
+            });
+            var bricks5 = this.physics.add.staticGroup
+            ({
+                key: 'brick',
+                repeat: 25,
+                setXY: { x: 0, y: 580, stepX: 65 }
+            });
+        }
+        //creating puppetShow arena
+        if (map == 'puppetShow')
+        {
+            //loading music
+            this.asgore = this.sound.add("asgore");
+            this.asgore.play(musicConfig);
+            //creating the map
+            //background
+            this.add.image(1031, 580, 'backDrop').setDisplaySize(1200, 900);
+            //creating the ground
+            this.puppetStand = this.physics.add.sprite(516, 480, 'puppetStand').setDisplaySize(1031, 200);
+            this.puppetStand.body.setImmovable(true);
+            this.puppetStand.body.setAllowGravity(false);
+            //adding hands
+            this.hand = this.physics.add.sprite(150, 200, 'hand').setDisplaySize(260, 100);
+            this.hand.body.setImmovable(true);
+            this.hand.body.setAllowGravity(false);
+            this.hand.setSize(130, 50);
+            this.hand.setOffset(-5, 15);
+            this.hand2 = this.physics.add.sprite(879, 200, 'hand').setDisplaySize(260, 100).setFlipX(true);
+            this.hand2.body.setImmovable(true);
+            this.hand2.body.setAllowGravity(false);
+            this.hand2.setSize(130, 50);
+            this.hand2.setOffset(5, 15);
+            //adding puppets
+            this.puppetDude = this.physics.add.sprite(250, 290, 'puppetDude');
+            this.puppetDude.body.setImmovable(true);
+            this.puppetDude.body.setAllowGravity(false);
+            this.puppetDude2 = this.physics.add.sprite(781, 290, 'puppetDude');
+            this.puppetDude2.body.setImmovable(true);
+            this.puppetDude2.body.setAllowGravity(false);
+            //adding the puppets arms
+            this.puppetArm = this.physics.add.sprite(293, 300, 'black');
+            this.puppetArm.body.setImmovable(true);
+            this.puppetArm.body.setAllowGravity(false);
+            this.puppetArm2 = this.physics.add.sprite(739, 300, 'black');
+            this.puppetArm2.body.setImmovable(true);
+            this.puppetArm2.body.setAllowGravity(false);
+        }
+        //creating the swamp arena
+        if (map == 'swamp')
+        {
+            //loading music
+            this.ghostFight = this.sound.add("ghostFight");
+            this.ghostFight.play(musicConfig);
+            //adding the sky
+            this.add.image(516, 290, 'sky').setDisplaySize(1200, 900).setTint(0x90EE90);
+            //adding arena
+            //adding water
+            var water = this.physics.add.staticGroup
+            ({
+                key: 'water',
+                repeat: 5,
+                setXY: { x: 0, y: 650, stepX: 200 }
+            });
+            //adding tree
+            this.tree = this.physics.add.sprite(200, 380, 'swampTree');
+            this.tree.body.setImmovable(true);
+            this.tree.body.setAllowGravity(false);
+            //adding stairs
+            var stairs = this.physics.add.staticGroup
+            ({
+                key: 'brick',
+                repeat: 3,
+                setXY: { x: 450, y: 190, stepX: 75, stepY: 100 }
+            });
+            //adding the log
+            this.log = this.physics.add.sprite(800, 540, 'log').setDisplaySize(200, 75);
+            this.log.body.setImmovable(true);
+            this.log.body.setAllowGravity(false);
+            this.log.setVelocityX(10);
+        }
+        //creating the pizzaPlace arena
+        if (map == 'pizzaPlace')
+        {
+            //loading music
+            this.heroBattle = this.sound.add("heroBattle");
+            this.heroBattle.play(musicConfig);
+            //creating the stage
+            this.add.image(1031, 500, 'backDrop').setDisplaySize(1031, 250).setTint(0xd2b48c);
+            //creating the second platforms
+            this.stageFloor = this.physics.add.sprite(515, 260, 'black').setDisplaySize(650, 15);
+            this.stageFloor.body.setImmovable(true);
+            this.stageFloor.body.setAllowGravity(false);
+            //addding the floor
+            this.add.image(515, 530, 'pizzaFloor').setDisplaySize(1031, 100);
+            //adding the tables
+            var tables = this.physics.add.staticGroup
+            ({
+                key: 'pizzaTable',
+                repeat: 4,
+                setXY: { x: 100, y: 470, stepX: 208 }
+            });
+            //adding the pizza man animatronic
+            this.anims.create 
+            ({
+                key: 'pizzaGuitar',
+                frames: 
+                [
+                    { key: 'pizzaGuitar1' },
+                    { key: 'pizzaGuitar2' },
+                ],
+                frameRate: 4,
+                repeat: -1
+            });
+            this.add.sprite(515, 180, 'pizzaGuitar1').play('pizzaGuitar');
+        }
+        //creating the palace
+        if (map == 'puppetPalace')
+        {
+            //loading music
+            this.lastBreath2 = this.sound.add("lastBreath2");
+            this.lastBreath2.play(musicConfig);
+            //creating the sky
+            this.add.image(515, 290, 'sky').setDisplaySize(1200, 900);
+            //creating the palace
+            this.add.image(515, 330, 'palaceBase');
+            this.add.image(100, 350, 'palacePillar');
+            this.add.image(931, 350, 'palacePillar').setFlipX(true);
+            //creating the solids
+            var solids = this.physics.add.group({immovable: true, allowGravity: false});
+            solids.create(515, 570, 'black').setDisplaySize(1060, 25);
+            solids.create(205, 450, 'palacePlatform');
+            solids.create(70, 320, 'palacePlatform');
+            solids.create(826, 450, 'palacePlatform');
+            solids.create(961, 320, 'palacePlatform');
+            //creating the moving platforms
+            this.movingPlatform1 = this.physics.add.sprite(515, 380, 'palacePlatform');
+            this.movingPlatform1.body.setImmovable(true);
+            this.movingPlatform1.body.setAllowGravity(false);
+            this.movingPlatform1.setVelocityX(100);
+            this.movingPlatform3 = this.physics.add.sprite(305, 170, 'palacePlatform');
+            this.movingPlatform3.body.setImmovable(true);
+            this.movingPlatform3.body.setAllowGravity(false);
+            this.movingPlatform3.setVelocityX(100);
+        }
+        //creating the robot city arena
+        if (map == 'robotCity')
+        {
+            //loading music
+            this.metalCrusher = this.sound.add("metalCrusher");
+            this.metalCrusher.play(musicConfig);
+            //creating the big robot in the middle
+            this.anims.create 
+            ({
+                key: 'bigRobot',
+                frames: 
+                [
+                    { key: 'bigRobot1' },
+                    { key: 'bigRobot2' },
+                ],
+                frameRate: 2,
+                repeat: -1
+            });
+            this.add.sprite(515, 330, 'bigRobot1').play('bigRobot');
+            //creating the floor and the gears
+            var floor = this.physics.add.group({immovable: true, allowGravity: false});
+            floor.create(515, 570, 'black').setDisplaySize(1060, 25);
+            floor.create(550, 100, 'black').setDisplaySize(460, 20);
+            floor.create(0, 210, 'black').setDisplaySize(100, 20);
+            floor.create(1031, 210, 'black').setDisplaySize(100, 20);
+            //creating the gears
+            this.gear = this.physics.add.sprite(300, 450, 'gear');
+            this.gear.body.setImmovable(true);
+            this.gear.body.setAllowGravity(false);
+            this.gear.setCircle(42);
+
+            this.gear2 = this.physics.add.sprite(245, 390, 'gear');
+            this.gear2.body.setImmovable(true);
+            this.gear2.body.setAllowGravity(false);
+            this.gear2.setCircle(42);
+
+            this.gear3 = this.physics.add.sprite(150, 260, 'gear');
+            this.gear3.body.setImmovable(true);
+            this.gear3.body.setAllowGravity(false);
+            this.gear3.setCircle(42);
+
+            this.gear4 = this.physics.add.sprite(95, 210, 'gear');
+            this.gear4.body.setImmovable(true);
+            this.gear4.body.setAllowGravity(false);
+            this.gear4.setCircle(42);
+
+            this.gear5 = this.physics.add.sprite(300 + 1031 - 300*2, 450, 'gear');
+            this.gear5.body.setImmovable(true);
+            this.gear5.body.setAllowGravity(false);
+            this.gear5.setCircle(42);
+
+            this.gear6 = this.physics.add.sprite(245 + 1031 - 245*2, 390, 'gear');
+            this.gear6.body.setImmovable(true);
+            this.gear6.body.setAllowGravity(false);
+            this.gear6.setCircle(42);
+
+            this.gear7 = this.physics.add.sprite(150 + 1031 - 150*2, 320, 'gear');
+            this.gear7.body.setImmovable(true);
+            this.gear7.body.setAllowGravity(false);
+            this.gear7.setCircle(42);
+
+            this.gear8 = this.physics.add.sprite(95 + 1031 - 95*2, 270, 'gear');
+            this.gear8.body.setImmovable(true);
+            this.gear8.body.setAllowGravity(false);
+            this.gear8.setCircle(42);
+        }
+        //creating the scary room arena
+        if (map == 'binary')
+        {
+            //loading music
+            this.anticipation = this.sound.add("anticipation");
+            this.anticipation.play(musicConfig);
+            //adding the background
+            this.add.image(515, 290, 'binary').setDisplaySize(1200, 900);
+            //adding the base
+            var base = this.physics.add.staticGroup({
+                key: ' ',
+                repeat: 35,
+                setXY: { x: 15, y: 565, stepX: 30 }
+            });
+            var base2 = this.physics.add.staticGroup({
+                key: ' ',
+                repeat: 10,
+                setXY: { x: 15, y: 380, stepX: 30 }
+            });
+            var base3 = this.physics.add.staticGroup({
+                key: ' ',
+                repeat: 10,
+                setXY: { x: 1016, y: 380, stepX: -30 }
+            });
+            var base4 = this.physics.add.staticGroup({
+                key: ' ',
+                repeat: 11,
+                setXY: { x: 345, y: 380 - 185, stepX: 30 }
+            });
+            //adding the ones that move around the screen
+            var bouncers = this.physics.add.group();
+            bouncers.create(300, 75, ' ').setDisplaySize(75, 75).setBounce(1).setVelocityX(100).setCollideWorldBounds(true);
+            bouncers.create(600, 75, ' ').setDisplaySize(75, 75).setBounce(1).setVelocityX(-100).setCollideWorldBounds(true);
+            bouncers.create(900, 75, ' ').setDisplaySize(75, 75).setBounce(1).setVelocityX(100).setCollideWorldBounds(true);
+            //creating the collisions
+            this.physics.add.collider(base, bouncers);
+        }
+        //creating animations
+        //frog animations
+        if (charecter == 'frog' || charecter2 == 'frog')
+        {
+            this.anims.create 
+            ({
+                key: 'frogWalk',
+                frames: 
+                [
+                    { key: 'frogWalk1' },
+                    { key: 'frogWalk2' },
+                    { key: 'frogWalk3' },
+                    { key: 'frogWalk2' }
+                ],
+                frameRate: 5,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'frogIdle',
+                frames: 
+                [
+                    { key: 'frogWalk2' },
+                ],
+                frameRate: 1,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'frogPunch',
+                frames: 
+                [
+                    { key: 'frogPunch' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'frogSpit',
+                frames: 
+                [
+                    { key: 'frogSpit' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'frogKick',
+                frames: 
+                [
+                    { key: 'frogKick' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'frogFart',
+                frames: 
+                [
+                    { key: 'frogFart' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+        }
+        //robot animations
+        if (charecter == 'robot' || charecter2 == 'robot')
+        {
+            this.anims.create 
+            ({
+                key: 'robotWalk',
+                frames: 
+                [
+                    { key: 'robotWalk1' },
+                    { key: 'robotWalk2' },
+                    { key: 'robotWalk3' },
+                    { key: 'robotWalk4' }
+                ],
+                frameRate: 5,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'robotIdle',
+                frames: 
+                [
+                    { key: 'robotWalk2' },
+                ],
+                frameRate: 1,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'robotPunch',
+                frames: 
+                [
+                    { key: 'robotPunch' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'robotLaser',
+                frames: 
+                [
+                    { key: 'robotLaser' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'robotDownAttack',
+                frames: 
+                [
+                    { key: 'robotDownAttack' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'robotSuperLaser',
+                frames: 
+                [
+                    { key: 'robotSuperLaser' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+        }
+        //super hero animations
+        if (charecter == 'superHero' || charecter2 == 'superHero')
+        {
+            this.anims.create 
+            ({
+                key: 'superHeroWalk',
+                frames: 
+                [
+                    { key: 'superHeroWalk1' },
+                    { key: 'superHeroWalk2' },
+                    { key: 'superHeroWalk3' },
+                    { key: 'superHeroWalk2' }
+                ],
+                frameRate: 5,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'superHeroIdle',
+                frames: 
+                [
+                    { key: 'superHeroWalk2' },
+                ],
+                frameRate: 1,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'superHeroPunch',
+                frames: 
+                [
+                    { key: 'superHeroPunch' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'superHeroBreath',
+                frames: 
+                [
+                    { key: 'superHeroBreath' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'superHeroFootFire',
+                frames: 
+                [
+                    { key: 'superHeroFootFire' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'superHeroFootRocket',
+                frames: 
+                [
+                    { key: 'superHeroFootRocket' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+        }
+        //creating the pizza man animations
+        if (charecter == 'pizzaMan' || charecter2 == 'pizzaMan')
+        {
+            this.anims.create 
+            ({
+                key: 'pizzaManWalk',
+                frames: 
+                [
+                    { key: 'pizzaManWalk1' },
+                    { key: 'pizzaManWalk2' },
+                    { key: 'pizzaManWalk3' },
+                    { key: 'pizzaManWalk2' }
+                ],
+                frameRate: 5,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'pizzaManIdle',
+                frames: 
+                [
+                    { key: 'pizzaManWalk2' },
+                ],
+                frameRate: 1,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'pizzaManPunch',
+                frames: 
+                [
+                    { key: 'pizzaManPunch' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'pizzaManCheese',
+                frames: 
+                [
+                    { key: 'pizzaManCheese' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'pizzaManPepperoni',
+                frames: 
+                [
+                    { key: 'pizzaManPepperoni' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'pizzaManSauce',
+                frames: 
+                [
+                    { key: 'pizzaManSauce' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+        }
+        //creating the puppet animations
+        if (charecter == 'puppet' || charecter2 == 'puppet')
+        {
+            this.anims.create 
+            ({
+                key: 'puppetWalk',
+                frames: 
+                [
+                    { key: 'puppetWalk1' },
+                    { key: 'puppetWalk2' },
+                    { key: 'puppetWalk3' },
+                    { key: 'puppetWalk2' }
+                ],
+                frameRate: 5,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'puppetIdle',
+                frames: 
+                [
+                    { key: 'puppetWalk2' },
+                ],
+                frameRate: 1,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'puppetPunch',
+                frames: 
+                [
+                    { key: 'puppetPunch' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'puppetLaser',
+                frames: 
+                [
+                    { key: 'puppetLaser' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'puppetInvert',
+                frames: 
+                [
+                    { key: 'puppetInvert' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'puppetDownAttack',
+                frames: 
+                [
+                    { key: 'puppetDownAttack' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+        }
+        //creating the ogre animations
+        if (charecter == 'ogre' || charecter2 == 'ogre')
+        {
+            this.anims.create 
+            ({
+                key: 'ogreWalk',
+                frames: 
+                [
+                    { key: 'ogreWalk1' },
+                    { key: 'ogreWalk2' },
+                    { key: 'ogreWalk3' },
+                    { key: 'ogreWalk2' }
+                ],
+                frameRate: 5,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'ogreIdle',
+                frames: 
+                [
+                    { key: 'ogreWalk2' },
+                ],
+                frameRate: 1,
+                repeat: -1
+            });
+            this.anims.create 
+            ({
+                key: 'ogreKick',
+                frames: 
+                [
+                    { key: 'ogreKick' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'ogreLaser',
+                frames: 
+                [
+                    { key: 'ogreLaser' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'ogreLegfull',
+                frames: 
+                [
+                    { key: 'ogreLegfull' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+            this.anims.create 
+            ({
+                key: 'ogreEyeless',
+                frames: 
+                [
+                    { key: 'ogreEyeless' },
+                ],
+                frameRate: 1,
+                repeat: 1
+            });
+        }
+        //creating the players
+        if (charecter == 'frog')
+        {
+            this.player1 = this.physics.add.sprite(345, 0, 'frogWalk2');
+        }
+        if (charecter == 'robot')
+        {
+            this.player1 = this.physics.add.sprite(345, 0, 'robotWalk2');
+        }
+        if (charecter == 'superHero')
+        {
+            this.player1 = this.physics.add.sprite(345, 0, 'superHeroWalk2');
+        }
+        if (charecter == 'pizzaMan')
+        {
+            this.player1 = this.physics.add.sprite(345, 0, 'pizzaManWalk2');
+        }
+        if (charecter == 'puppet')
+        {
+            this.player1 = this.physics.add.sprite(345, 0, 'puppetWalk2');
+        }
+        if (charecter == 'ogre')
+        {
+            this.player1 = this.physics.add.sprite(345, 0, 'ogreWalk2');
+        }
+
+        if (charecter2 == 'frog')
+        {
+            this.player2 = this.physics.add.sprite(345, 0, 'frogWalk2');
+        }
+        if (charecter2 == 'robot')
+        {
+            this.player2 = this.physics.add.sprite(345, 0, 'robotWalk2');
+        }
+        if (charecter2 == 'superHero')
+        {
+            this.player2 = this.physics.add.sprite(345, 0, 'superHeroWalk2');
+        }
+        if (charecter2 == 'pizzaMan')
+        {
+            this.player2 = this.physics.add.sprite(345, 0, 'pizzaManWalk2');
+        }
+        if (charecter2 == 'puppet')
+        {
+            this.player2 = this.physics.add.sprite(345, 0, 'puppetWalk2');
+        }
+        if (charecter2 == 'ogre')
+        {
+            this.player2 = this.physics.add.sprite(345, 0, 'ogreWalk2');
+        }
+        //making player1 and player2 have drag
+        this.player1.setDragX(0);
+        this.player2.setDragX(0);
+        //creating collisions and things that you want over the players and updating players positions
+        if (map == 'binary')
+        {
+            this.player1.x = 345 + 30*11;
+            this.player2.x = 345;
+            this.player1.y = 100;
+            this.player2.y = 100;
+            this.physics.add.collider(base, this.player1);
+            this.physics.add.collider(base2, this.player1);
+            this.physics.add.collider(base3, this.player1);
+            this.physics.add.collider(base4, this.player1);
+
+            this.physics.add.collider(base, this.player2);
+            this.physics.add.collider(base2, this.player2);
+            this.physics.add.collider(base3, this.player2);
+            this.physics.add.collider(base4, this.player2);
+        }
+        if (map == 'boxingRing')
+        {
+            this.player2.x = 300;
+            this.player2.y = 300;
+            this.player1.x = 731;
+            this.player1.y = 300;
+
+            this.physics.add.collider(this.boxingRingBase, this.player1, downTrueBoxing, null, this);
+            function downTrueBoxing()
+            {
+                player1down = true;
+            }
+            this.physics.add.collider(solids, this.player1, solidsDown1, null, this);
+            function solidsDown1()
+            {
+                if (this.player1.body.touching.down)
+                {
+                    player1down = true;
+                }
+            }
+
+            this.physics.add.collider(this.boxingRingBase, this.player2, downTrueBoxing2, null, this);
+            function downTrueBoxing2()
+            {
+                player2down = true;
+            }
+            this.physics.add.collider(solids, this.player2, solidsDown2, null, this);
+            function solidsDown2()
+            {
+                if (this.player2.body.touching.down)
+                {
+                    player2down = true;
+                }
+            }
+            this.add.image(515, 400, 'boxingRings').setScale(0.5);
+        }
+        if (map == 'treeHouse')
+        {
+            this.player2.x = 100;
+            this.player2.y = 440;
+            this.player1.x = 931;
+            this.player1.y = 450;
+
+            this.physics.add.collider(bushes, this.player1);
+            this.physics.add.collider(wood, this.player1);
+            this.physics.add.collider(this.upDownWood, this.player1, downTrueWood, null, this);
+            function downTrueWood()
+            {
+                if (this.player1.y + this.player1.height/2 < this.upDownWood.y - this.upDownWood.height/2 + 1);
+                {
+                    if (this.player1.y + this.player1.height/2 < this.upDownWood.y)
+                    {
+                        player1down = true;
+                    }
+                }
+            }
+
+            this.physics.add.collider(wood, this.player2);
+            this.physics.add.collider(this.upDownWood, this.player2, downTrueWood2, null, this);
+            function downTrueWood2()
+            {
+                if (this.player2.y + this.player2.height/2 < this.upDownWood.y - this.upDownWood.height/2 + 1)
+                {
+                    if (this.player2.y + this.player2.height/2 < this.upDownWood.y)
+                    {
+                        player2down = true;
+                    }
+                }
+            }
+            this.physics.add.collider(bushes, this.player2);
+        }
+        if (map == 'burger')
+        {
+            this.player2.x = 75;
+            this.player2.y = 440;
+            this.player1.x = 400;
+            this.player1.y = 450;
+
+            this.physics.add.collider(ketchups, this.player1);
+            this.physics.add.collider(ketchups4, this.player1);
+            this.physics.add.collider(ketchups3, this.player1);
+            this.physics.add.collider(this.ketchup2, this.player1, downTrueKetchup, null, this);
+            function downTrueKetchup()
+            {
+                if (this.player1.y + this.player1.height/2 < this.ketchup2.y - this.ketchup2.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+
+            this.physics.add.collider(ketchups, this.player2);
+            this.physics.add.collider(ketchups4, this.player2);
+            this.physics.add.collider(ketchups3, this.player2);
+            this.physics.add.collider(this.ketchup2, this.player2, downTrueKetchup2, null, this);
+            function downTrueKetchup2()
+            {
+                if (this.player2.y + this.player2.height/2 < this.ketchup2.y - this.ketchup2.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+        }
+        if (map == 'swamp')
+        {
+            this.player2.x = 100;
+            this.player2.y = 100;
+            this.player1.x = 800;
+            this.player1.y = 400;
+
+           this.physics.add.collider(this.log, this.player1, logDown, null, this);
+           function logDown()
+           {
+                if (this.player1.y + this.player1.height/2 < this.log.y - this.log.height/2 + 1)
+                {
+                    player1down = true;
+                }
+           } 
+           this.physics.add.collider(this.tree, this.player1, treeDown, null, this);
+           function treeDown()
+           {
+                if (this.player1.y + this.player1.height/2 < this.tree.y - this.tree.height/2 + 1)
+                {
+                    player1down = true;
+                }
+           } 
+           this.physics.add.collider(stairs, this.player1);
+           
+           this.physics.add.collider(this.log, this.player2, logDown2, null, this);
+           function logDown2()
+           {
+                if (this.player2.y + this.player2.height/2 < this.log.y - this.log.height/2 + 1)
+                {
+                    player2down = true;
+                }
+           } 
+           this.physics.add.collider(this.tree, this.player2, treeDown2, null, this);
+           function treeDown2()
+           {
+                if (this.player2.y + this.player2.height/2 < this.tree.y - this.tree.height/2 + 1)
+                {
+                    player2down = true;
+                }
+           } 
+           this.physics.add.collider(stairs, this.player2); 
+        }
+        if (map == 'newYork')
+        {
+            this.player2.x = 50;
+            this.player2.y = 450;
+            this.player1.x = 400;
+            this.player1.y = 450;
+
+            this.add.image(857, 450, 'brickBarrier').setScale(0.65);
+            this.add.image(725, 20, 'brickBarrier').setDisplaySize(385, 100);
+            this.physics.add.collider(bricks, this.player1);
+            this.physics.add.collider(bricks2, this.player1);
+            this.physics.add.collider(bricks3, this.player1);
+            this.physics.add.collider(bricks4, this.player1);
+            this.physics.add.collider(bricks5, this.player1);
+            this.physics.add.collider(this.hotDogStand, this.player1, hotDogDown, null, this);
+            function hotDogDown()
+            {
+                if (this.player1.y + this.player1.height/2 < this.hotDogStand.y - this.hotDogStand.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+
+            this.physics.add.collider(bricks, this.player2);
+            this.physics.add.collider(bricks2, this.player2);
+            this.physics.add.collider(bricks3, this.player2);
+            this.physics.add.collider(bricks4, this.player2);
+            this.physics.add.collider(bricks5, this.player2);
+            this.physics.add.collider(this.hotDogStand, this.player2, hotDogDown2, null, this);
+            function hotDogDown2()
+            {
+                if (this.player2.y + this.player2.height/2 < this.hotDogStand.y - this.hotDogStand.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+        }
+        if (map == 'robotCity')
+        {
+            this.player2.x = 400;
+            this.player2.y = 450;
+            this.player1.x = 631;
+            this.player1.y = 450;
+
+            this.physics.add.collider(this.gear, this.player1, gearDown1, null, this);
+            function gearDown1()
+            {
+                if (this.player1.y + this.player1.height/2 < this.gear.y - this.gear.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.gear2, this.player1, gearDown2, null, this);
+            function gearDown2()
+            {
+                if (this.player1.y + this.player1.height/2 < this.gear2.y - this.gear2.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.gear3, this.player1, gearDown3, null, this);
+            function gearDown3()
+            {
+                if (this.player1.y + this.player1.height/2 < this.gear3.y - this.gear3.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.gear4, this.player1, gearDown4, null, this);
+            function gearDown4()
+            {
+                if (this.player1.y + this.player1.height/2 < this.gear4.y - this.gear4.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.gear5, this.player1, gearDown5, null, this);
+            function gearDown5()
+            {
+                if (this.player1.y + this.player1.height/2 < this.gear5.y - this.gear5.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.gear6, this.player1, gearDown6, null, this);
+            function gearDown6()
+            {
+                if (this.player1.y + this.player1.height/2 < this.gear6.y - this.gear6.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.gear7, this.player1, gearDown7, null, this);
+            function gearDown7()
+            {
+                if (this.player1.y + this.player1.height/2 < this.gear7.y - this.gear7.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.gear8, this.player1, gearDown8, null, this);
+            function gearDown8()
+            {
+                if (this.player1.y + this.player1.height/2 < this.gear8.y - this.gear8.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(floor, this.player1, floorDown1, null, this);
+            function floorDown1()
+            {
+                if (this.player1.body.touching.down)
+                {
+                    player1down = true;
+                }
+            }
+
+            this.physics.add.collider(this.gear, this.player2, gearDown12, null, this);
+            function gearDown12()
+            {
+                if (this.player2.y + this.player2.height/2 < this.gear.y - this.gear.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.gear2, this.player2, gearDown22, null, this);
+            function gearDown22()
+            {
+                if (this.player2.y + this.player2.height/2 < this.gear2.y - this.gear2.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.gear3, this.player2, gearDown32, null, this);
+            function gearDown32()
+            {
+                if (this.player2.y + this.player2.height/2 < this.gear3.y - this.gear3.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.gear4, this.player2, gearDown42, null, this);
+            function gearDown42()
+            {
+                if (this.player2.y + this.player2.height/2 < this.gear4.y - this.gear4.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.gear5, this.player2, gearDown52, null, this);
+            function gearDown52()
+            {
+                if (this.player2.y + this.player2.height/2 < this.gear5.y - this.gear5.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.gear6, this.player2, gearDown62, null, this);
+            function gearDown62()
+            {
+                if (this.player2.y + this.player2.height/2 < this.gear6.y - this.gear6.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.gear7, this.player2, gearDown72, null, this);
+            function gearDown72()
+            {
+                if (this.player2.y + this.player2.height/2 < this.gear7.y - this.gear7.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.gear8, this.player2, gearDown82, null, this);
+            function gearDown82()
+            {
+                if (this.player2.y + this.player2.height/2 < this.gear8.y - this.gear8.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(floor, this.player2, floorDown2, null, this);
+            function floorDown2()
+            {
+                if (this.player2.body.touching.down)
+                {
+                    player2down = true;
+                }
+            }
+        }
+        if (map == 'puppetShow')
+        {
+            this.player2.x = 400;
+            this.player2.y = 300;
+            this.player1.x = 631;
+            this.player1.y = 300;
+
+            this.physics.add.collider(this.puppetStand, this.player1, puppetStandDown, null, this);
+            function puppetStandDown()
+            {
+                player1down = true;
+            }
+            this.physics.add.collider(this.puppetDude, this.player1, puppetDudeDown, null, this);
+            function puppetDudeDown()
+            {
+                if (this.player1.y + this.player1.height/2 < this.puppetDude.y - this.puppetDude.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.puppetDude2, this.player1, puppetDudeDown2, null, this);
+            function puppetDudeDown2()
+            {
+                if (this.player1.y + this.player1.height/2 < this.puppetDude2.y - this.puppetDude2.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.puppetArm, this.player1, puppetArmDown, null, this);
+            function puppetArmDown()
+            {
+                if (this.player1.y + this.player1.height/2 < this.puppetArm.y - this.puppetArm.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.puppetArm2, this.player1, puppetArmDown2, null, this);
+            function puppetArmDown2()
+            {
+                if (this.player1.y + this.player1.height/2 < this.puppetArm2.y - this.puppetArm2.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.hand, this.player1, handDown, null, this);
+            function handDown()
+            {
+                if (this.player1.y + this.player1.height/2 < this.hand.y - 26)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.hand2, this.player1, handDown2, null, this);
+            function handDown2()
+            {
+                if (this.player1.y + this.player1.height/2 < this.hand2.y - 26)
+                {
+                    player1down = true;
+                }
+            }
+
+            this.physics.add.collider(this.puppetStand, this.player2, puppetStandDown2, null, this);
+            function puppetStandDown2()
+            {
+                player2down = true;
+            }
+            this.physics.add.collider(this.puppetDude, this.player2, puppetDudeDown22, null, this);
+            function puppetDudeDown22()
+            {
+                if (this.player2.y + this.player2.height/2 < this.puppetDude.y - this.puppetDude.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.puppetDude2, this.player2, puppetDudeDown222, null, this);
+            function puppetDudeDown222()
+            {
+                if (this.player2.y + this.player2.height/2 < this.puppetDude2.y - this.puppetDude2.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.puppetArm, this.player2, puppetArmDown22, null, this);
+            function puppetArmDown22()
+            {
+                if (this.player2.y + this.player2.height/2 < this.puppetArm.y - this.puppetArm.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.puppetArm2, this.player2, puppetArmDown222, null, this);
+            function puppetArmDown222()
+            {
+                if (this.player2.y + this.player2.height/2 < this.puppetArm2.y - this.puppetArm2.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.hand, this.player2, handDown22, null, this);
+            function handDown22()
+            {
+                if (this.player2.y + this.player2.height/2 < this.hand.y - 26)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.hand2, this.player2, handDown222, null, this);
+            function handDown222()
+            {
+                if (this.player2.y + this.player2.height/2 < this.hand2.y - 26)
+                {
+                    player2down = true;
+                }
+            }
+
+            this.add.image(37, 290, 'redBlind');
+            this.add.image(994, 290, 'redBlind').setFlipX(true);
+            this.add.image(515, 0, 'black').setDisplaySize(1060, 15);
+        }
+        if (map == 'pizzaPlace')
+        {
+            this.player2.x = 100;
+            this.player2.y = 350;
+            this.player1.x = 931;
+            this.player1.y = 350;
+
+            this.physics.add.collider(this.stageFloor, this.player1, stageFloorDown1, null, this);
+            function stageFloorDown1()
+            {
+                if (this.player1.y + this.player1.height/2 < this.stageFloor.y - this.stageFloor.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(tables, this.player1);
+
+            this.physics.add.collider(this.stageFloor, this.player2, stageFloorDown2, null, this);
+            function stageFloorDown2()
+            {
+                if (this.player2.y + this.player2.height/2 < this.stageFloor.y - this.stageFloor.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(tables, this.player2);
+        }
+        if (map == 'puppetPalace')
+        {
+            this.player2.x = 325;
+            this.player2.y = 450;
+            this.player1.x = 706;
+            this.player1.y = 450;
+
+            this.physics.add.collider(solids, this.player1, solidsDown12, null, this);
+            function solidsDown12()
+            {
+                if (this.player1.body.touching.down)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.movingPlatform1, this.player1, platformDown1, null, this);
+            function platformDown1()
+            {
+                if (this.player1.y + this.player1.height/2 < this.movingPlatform1.y - this.movingPlatform1.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+            this.physics.add.collider(this.movingPlatform3, this.player1, platformDown3, null, this);
+            function platformDown3()
+            {
+                if (this.player1.y + this.player1.height/2 < this.movingPlatform3.y - this.movingPlatform3.height/2 + 1)
+                {
+                    player1down = true;
+                }
+            }
+
+            this.physics.add.collider(solids, this.player2, solidsDown22, null, this);
+            function solidsDown22()
+            {
+                if (this.player2.body.touching.down)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.movingPlatform1, this.player2, platformDown12, null, this);
+            function platformDown12()
+            {
+                if (this.player2.y + this.player2.height/2 < this.movingPlatform1.y - this.movingPlatform1.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+            this.physics.add.collider(this.movingPlatform3, this.player2, platformDown32, null, this);
+            function platformDown32()
+            {
+                if (this.player2.y + this.player2.height/2 < this.movingPlatform3.y - this.movingPlatform3.height/2 + 1)
+                {
+                    player2down = true;
+                }
+            }
+        }
+        //adding player vs player overlap
+        this.physics.add.overlap(this.player1, this.player2, playerAttacks, null, this);
+        function playerAttacks()
+        {
+            if (this.keys.s.isDown && punch2 == 1 && this.player2.body.touching.down && computer == false && knockback1 == false || this.keys.s.isDown && punch2 == 1 && player2down == true && computer == false && knockback1 == false || attack21 == true && punch2 == 1 && this.player2.body.touching.down && knockback1 == false || attack21 == true && punch2 == 1 && player2down == true && knockback1 == false)
+            {
+                if (ultimateDirection2 == 'right')
+                {
+                    if (this.player1.x > this.player2.x && health1 > 1)
+                    {
+                        health1 -= 3;
+                        knockback1 = true;
+                    } else if (health1 < 4) {
+                        health1 -= health1;
+                    }
+                }
+                if (ultimateDirection2 == 'left')
+                {
+                    if (this.player1.x < this.player2.x && health1 > 1)
+                    {
+                        knockback1 = true;
+                        health1 -= 3;
+                    } else if (health1 < 4) {
+                        health1 -= health1;
+                    }
+                }
+            }
+
+            if (this.cursors.down.isDown && punch == 1 && this.player1.body.blocked.down || this.cursors.down.isDown && punch == 1 && player1down == true || attack11 == true && punch == 1 && this.player1.body.blocked.down || attack11 == true && punch == 1 && player1down == true)
+            {
+                if (ultimateDirection == 'right')
+                {
+                    if (this.player2.x > this.player1.x && health2 > 1)
+                    {
+                        knockback2 = true;
+                        health2 -= 3;
+                    } else if (health2 < 4) {
+                        health2 -= health2;
+                    }
+                }
+                if (ultimateDirection == 'left')
+                {
+                    if (this.player2.x < this.player1.x && health2 > 1)
+                    {
+                        knockback2 = true;
+                        health2 -= 3;
+                    } else if (health2 < 4) {
+                        health2 -= health2;
+                    }
+                }
+            }
+        }
+        //creating power ups
+        this.healer = this.physics.add.sprite(-1000, 100, 'troll').setScale(0.3).setBounce(1).setVelocityX(Phaser.Math.Between(-100, 100));
+        //adding player vs power up overlap
+        this.physics.add.overlap(this.player1, this.healer, healer1, null, this)
+        function healer1()
+        {
+            if (powerups > 4050)
+            {
+                health1 += 20;
+                this.healer.disableBody(true, true);
+                this.beepBoop.play();
+            }
+        }
+        this.physics.add.overlap(this.player2, this.healer, healer2, null, this)
+        function healer2()
+        {
+            if (powerups > 4050)
+            {
+                health2 += 20;
+                this.healer.disableBody(true, true);
+                this.beepBoop.play();
+            }
+        }
+        //creating the player tags
+        this.player1Tag = this.physics.add.sprite(this.player1.x, this.player1.y - 100, 'player1Tag');
+        this.player2Tag = this.physics.add.sprite(this.player2.x, this.player2.y - 100, 'player2Tag');
+        //creating the player health text and image
+        this.add.bitmapText(1, 10, 'hyper', 'player 2 health:', 30).setScrollFactor(0).setAlpha(0.8).setTintFill(0xcc0000);
+        this.add.bitmapText(501, 10, 'hyper', 'player 1 health:', 30).setScrollFactor(0).setAlpha(0.8).setTintFill(0x0000cc);
+        this.percentage1 = this.add.bitmapText(730, 100, 'hyper', health2 + '%', 60).setScrollFactor(0).setAlpha(0.4).setTintFill(0x0000cc).setOrigin(0.5);
+        this.percentage2 = this.add.bitmapText(230, 100, 'hyper', health1 + '%', 60).setScrollFactor(0).setAlpha(0.4).setTintFill(0xcc0000).setOrigin(0.5);
+        this.healthBar1 = this.add.sprite(930, 50, 'blue').setScrollFactor(0).setAlpha(0.8);
+        this.healthBar2 = this.add.sprite(430, 50, 'red').setScrollFactor(0).setAlpha(0.8);
+        //creating the mobile controls buttons
+        if (mobile == true)
+        {
+            //jump button
+            var upButton1 = this.add.image(900, 450, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(2).setScrollFactor(0);
+            upButton1.on('pointerdown', function()
+            {
+                jump1 = true;
+            }, this)
+            upButton1.on('pointerup', function()
+            {
+                jump1 = false;
+            }, this)
+            //left button
+            var leftButton1 = this.add.image(830, 500, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(2).setScrollFactor(0).setAngle(270);
+            leftButton1.on('pointerdown', function()
+            {
+                left1 = true
+            }, this)
+            leftButton1.on('pointerup', function()
+            {
+                left1 = false
+            }, this)
+            //top left button
+            var topLeftButton1 = this.add.image(830, 450, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(1.7).setScrollFactor(0).setAngle(315);
+            topLeftButton1.on('pointerdown', function()
+            {
+                jump1 = true
+                left1 = true  
+            }, this)
+            topLeftButton1.on('pointerup', function()
+            {
+                jump1 = false
+                left1 = false
+            }, this)
+            //right button
+            var rightButton1 = this.add.image(970, 500, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(2).setScrollFactor(0).setAngle(90);
+            rightButton1.on('pointerdown', function()
+            {
+                right1 = true
+            }, this)
+            rightButton1.on('pointerup', function()
+            {
+                right1 = false
+            }, this)
+            //top right button
+            var topRightButton1 = this.add.image(970, 450, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(1.7).setScrollFactor(0).setAngle(45);
+            topRightButton1.on('pointerdown', function()
+            {
+                right1 = true
+                jump1 = true
+            }, this)
+            topRightButton1.on('pointerup', function()
+            {
+                right1 = false
+                jump1 = false 
+            }, this)
+            //attack1 button
+            var attack1Button = this.add.image(200, 500, 'a').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(1.5).setScrollFactor(0);
+            attack1Button.on('pointerdown', function()
+            {
+                attack11 = true
+            }, this)
+            attack1Button.on('pointerup', function()
+            {
+                attack11 = false
+            }, this)
+            //attack2 button
+            var attack2Button = this.add.image(200, 420, 'b').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(1.5).setScrollFactor(0);
+            attack2Button.on('pointerdown', function()
+            {
+                attack12 = true
+            }, this)
+            attack2Button.on('pointerup', function()
+            {
+                attack12 = false
+            }, this)
+            //the things in this if statement will only be called if there are 2 people playing on a phone or tablet
+            if (computer == false)
+            {
+                //updating the a and b buttons x position
+                attack1Button.x = 730;
+                attack2Button.x = 730;
+                //adding the buttons for player 2
+                //jump button
+                var upButton2 = this.add.image(200, 450, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(2).setScrollFactor(0);
+                upButton2.on('pointerdown', function()
+                {
+                    jump2 = true;
+                }, this)
+                upButton2.on('pointerup', function()
+                {
+                    jump2 = false;
+                }, this)
+                //left button
+                var leftButton2 = this.add.image(130, 500, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(2).setScrollFactor(0).setAngle(270);
+                leftButton2.on('pointerdown', function()
+                {
+                    left2 = true
+                }, this)
+                leftButton2.on('pointerup', function()
+                {
+                    left2 = false
+                }, this)
+                //top left button
+                var topLeftButton2 = this.add.image(130, 450, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(1.7).setScrollFactor(0).setAngle(315);
+                topLeftButton2.on('pointerdown', function()
+                {
+                    jump2 = true
+                    left2 = true  
+                }, this)
+                topLeftButton2.on('pointerup', function()
+                {
+                    jump2 = false
+                    left2 = false
+                }, this)
+                //right button
+                var rightButton2 = this.add.image(270, 500, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(2).setScrollFactor(0).setAngle(90);
+                rightButton2.on('pointerdown', function()
+                {
+                    right2 = true
+                }, this)
+                rightButton2.on('pointerup', function()
+                {
+                    right2 = false
+                }, this)
+                //top right button
+                var topRightButton2 = this.add.image(270, 450, 'arrow').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(1.7).setScrollFactor(0).setAngle(45);
+                topRightButton2.on('pointerdown', function()
+                {
+                    right2 = true
+                    jump2 = true
+                }, this)
+                topRightButton2.on('pointerup', function()
+                {
+                    right2 = false
+                    jump2 = false 
+                }, this)
+                //attack1 button
+                var attack21Button = this.add.image(360, 500, 'a').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(1.5).setScrollFactor(0);
+                attack21Button.on('pointerdown', function()
+                {
+                    attack21 = true
+                }, this)
+                attack21Button.on('pointerup', function()
+                {
+                    attack21 = false
+                }, this)
+                //attack 2 button
+                var attack22Button = this.add.image(360, 420, 'b').setInteractive({cursor: 'pointer'}).setAlpha(0.6).setScale(1.5).setScrollFactor(0);
+                attack22Button.on('pointerdown', function()
+                {
+                    attack22 = true
+                }, this)
+                attack22Button.on('pointerup', function()
+                {
+                    attack22 = false
+                }, this)
+            }
+            //adding green images on top of normal arrows for the binary map bc that map is black
+            if (map == 'binary')
+            {
+                this.add.image(900, 450, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(2);
+                this.add.image(830, 500, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(2).setAngle(270);
+                this.add.image(830, 450, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(1.7).setAngle(315);
+                this.add.image(970, 500, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(2).setAngle(90);
+                this.add.image(970, 450, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(1.7).setAngle(45);
+
+                if (computer == false)
+                {
+                    this.add.image(200, 450, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(2);
+                    this.add.image(130, 500, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(2).setAngle(270);
+                    this.add.image(130, 450, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(1.7).setAngle(315);
+                    this.add.image(270, 500, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(2).setAngle(90);
+                    this.add.image(270, 450, 'greenarrow').setScrollFactor(0).setAlpha(0.4).setScale(1.7).setAngle(45);
+                    this.add.image(attack21Button.x, attack21Button.y, 'greena').setScrollFactor(0).setAlpha(0.4).setScale(1.5);
+                    this.add.image(attack22Button.x, attack22Button.y, 'greenb').setScrollFactor(0).setAlpha(0.4).setScale(1.5);
+                }
+
+                this.add.image(attack1Button.x, attack1Button.y, 'greena').setScrollFactor(0).setAlpha(0.4).setScale(1.5);
+                this.add.image(attack2Button.x, attack2Button.y, 'greenb').setScrollFactor(0).setAlpha(0.4).setScale(1.5);
+            }
+            //doing the same for the pizza place map but with yellow
+            if (map == 'pizzaPlace')
+            {
+                this.add.image(900, 450, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(2);
+                this.add.image(830, 500, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(2).setAngle(270);
+                this.add.image(830, 450, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(1.7).setAngle(315);
+                this.add.image(970, 500, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(2).setAngle(90);
+                this.add.image(970, 450, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(1.7).setAngle(45);
+
+                if (computer == false)
+                {
+                    this.add.image(200, 450, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(2);
+                    this.add.image(130, 500, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(2).setAngle(270);
+                    this.add.image(130, 450, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(1.7).setAngle(315);
+                    this.add.image(270, 500, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(2).setAngle(90);
+                    this.add.image(270, 450, 'yellowarrow').setScrollFactor(0).setAlpha(0.4).setScale(1.7).setAngle(45);
+                    this.add.image(attack21Button.x, attack21Button.y, 'yellowa').setScrollFactor(0).setAlpha(0.4).setScale(1.5);
+                    this.add.image(attack22Button.x, attack22Button.y, 'yellowb').setScrollFactor(0).setAlpha(0.4).setScale(1.5);
+                }
+
+                this.add.image(attack1Button.x, attack1Button.y, 'yellowa').setScrollFactor(0).setAlpha(0.4).setScale(1.5);
+                this.add.image(attack2Button.x, attack2Button.y, 'yellowb').setScrollFactor(0).setAlpha(0.4).setScale(1.5);
+            }
+        }
+    }
+
+    update()
+    {
+        //creating the powerups
+        powerups += 1;
+        //creating the troll powerup
+        if (powerups == 4000)
+        {
+            this.healer.x = Phaser.Math.Between(100, 900);
+            this.healer.y = 100; 
+            this.healer.setVelocityY(0);
+            this.healer.setCollideWorldBounds(true);
+        }
+        //adding player vs projectile overlap
+        this.physics.add.overlap(this.player1, this.projectile2, player1Hit, null, this)
+        function player1Hit()
+        {
+            health1 -= 0.03;
+            knockback1 = true;
+            this.projectile2.body.setAllowGravity(true);
+            this.projectile2.body.setImmovable(false);
+            if (charecter == 'puppet')
+            {
+                health1 -= 0.01;
+            }
+            if (this.projectile2.body.velocity.x > 0)
+            {
+                projectileKnockback1Right = true;
+            }
+            if (this.projectile2.body.velocity.x < 0)
+            {
+                projectileKnockback1Left = true;
+            }
+        }
+        this.physics.add.overlap(this.player2, this.projectile1, player2Hit, null, this)
+        function player2Hit()
+        {
+            health2 -= 0.03;
+            knockback2 = true;
+            this.projectile1.body.setAllowGravity(true);
+            this.projectile1.body.setImmovable(false);
+            if (charecter2 == 'puppet')
+            {
+                health2 -= 0.01;
+            }
+            if (this.projectile1.body.velocity.x > 0)
+            {
+                projectileKnockback2Right = true;
+            }
+            if (this.projectile1.body.velocity.x < 0)
+            {
+                projectileKnockback2Left = true;
+            }
+        }
+        this.physics.add.overlap(this.player1, this.projectile22, player1Hit2, null, this)
+        function player1Hit2()
+        {
+            knockback1 = true;
+            health1 -= 0.03;
+            this.projectile22.body.setAllowGravity(true);
+            this.projectile22.body.setImmovable(false);
+            if (charecter == 'puppet')
+            {
+                health1 -= 0.01;
+            }
+            if (this.projectile22.body.velocity.x > 0)
+            {
+                projectileKnockback1Right = true
+            }
+            if (this.projectile22.body.velocity.x < 0)
+            {
+                projectileKnockback1Left = true
+            }
+        }
+        this.physics.add.overlap(this.player2, this.projectile11, player2Hit2, null, this)
+        function player2Hit2()
+        {
+            health2 -= 0.03;
+            knockback2 = true;
+            this.projectile11.body.setAllowGravity(true);
+            this.projectile11.body.setImmovable(false);
+            if (charecter2 == 'puppet')
+            {
+                health2 -= 0.01;
+            }
+            if (this.projectile11.body.velocity.x > 0)
+            {
+                projectileKnockback2Right = true;
+            }
+            if (this.projectile11.body.velocity.x < 0)
+            {
+                projectileKnockback2Left = true;
+            }  
+        }
+        this.physics.add.overlap(this.player2, this.projectile111, player2Hit3, null, this)
+        function player2Hit3()
+        {
+            knockback2 = true;
+            if (this.projectile111.body.velocity.x > 0)
+            {
+                projectileKnockback2Right = true;
+            }
+            if (this.projectile111.body.velocity.x < 0)
+            {
+                projectileKnockback2Left = true;
+            }
+            health2 -= 0.03;
+        }
+        this.physics.add.overlap(this.player1, this.projectile222, player1Hit3, null, this)
+        function player1Hit3()
+        {
+            knockback1 = true;
+            health1 -= 0.03;
+            if (this.projectile222.body.velocity.x > 0)
+            {
+                projectileKnockback1Right = true
+            }
+            if (this.projectile222.body.velocity.x < 0)
+            {
+                projectileKnockback1Left = true
+            }
+        }
+        //updating the health
+        this.healthBar1.setDisplaySize(health1, 32);
+        this.healthBar2.setDisplaySize(health2, 32);
+        //making the health never negative
+        if (health1 < 0)
+        {
+            health1 = 0;
+        }
+        if (health2 < 0)
+        {
+            health2 = 0;
+        }
+
+        //creating the ai
+        if (computer == true)
+        {
+            //making the tenCycle work
+            tenCycle += 1;
+            if (tenCycle == 10)
+            {
+                tenCycle = 1;
+            }
+            //making the cycle120 work
+            cycle120 += 1;
+            if (cycle120 == 120)
+            {
+                cycle120 = 1;
+            }
+            // making the ai <lore> puppet masters game </lore>
+            //making ai follow player
+            if (this.player1.body.blocked.down || player1down == true)
+            {
+                if (this.player1.x > this.player2.x + 200)
+                {
+                    attack22 = false;
+                    left2 = false;
+                    right2 = true;
+                } else if (this.player1.x < this.player2.x - 200)
+                {
+                    attack22 = false;
+                    left2 = true;
+                    right2 = false;
+                } else if (this.player1.y > this.player2.y - this.player2.height && this.player1.y < this.player2.y + this.player2.height) {
+                    left2 = false;
+                    right2 = false;
+                    //making a punch
+                    if (tenCycle == 6 || tenCycle == 3 || tenCycle == 9)
+                    {
+                        attack22 = Phaser.Math.Between(false, true);
+                    }
+                    attack21 = false;
+                    punching = true;
+                }
+            }
+            //making ai jump to be on the same level with player1 and to poop on the loser
+            if (this.player1.y < this.player2.y && player1down == true || this.player1.y < this.player2.y && this.player1.body.blocked.down || punching == true && cycle120 == 2)
+            {
+                jump2 = true;
+            } else {
+                jump2 = false;
+            }
+            //making the punching value false after every frame
+            punching = false
+        }
+        //updating for the player
+        //making the robot hitbox better
+        if (charecter == 'robot')
+        {
+            this.player1.setSize(100, 144);
+        }
+        if (charecter2 == 'robot')
+        {
+            this.player2.setSize(100, 144);
+        }
+        this.cursors = this.input.keyboard.createCursorKeys();
+
+        this.keys = this.input.keyboard.addKeys
+        ({
+            a:  Phaser.Input.Keyboard.KeyCodes.A,
+            s:  Phaser.Input.Keyboard.KeyCodes.S,
+            d:  Phaser.Input.Keyboard.KeyCodes.D,
+            w:  Phaser.Input.Keyboard.KeyCodes.W,
+            e:  Phaser.Input.Keyboard.KeyCodes.E,
+            shift: Phaser.Input.Keyboard.KeyCodes.SHIFT
+        });
+        //moving the player
+        if (this.cursors.left.isDown || left1 == true)
+        {
+            this.player1.body.setVelocityX(-150);
+            this.player1.setFlipX(false);
+            if (direction == 'none')
+            {
+                if (charecter == 'frog')
+                {
+                    this.player1.play('frogWalk');
+                }
+                if (charecter == 'robot')
+                {
+                    this.player1.play('robotWalk');
+                }
+                if (charecter == 'superHero')
+                {
+                    this.player1.play('superHeroWalk');
+                }
+                if (charecter == 'pizzaMan')
+                {
+                    this.player1.play('pizzaManWalk');
+                }
+                if (charecter == 'puppet')
+                {
+                    this.player1.play('puppetWalk');
+                }
+                if (charecter == 'ogre')
+                {
+                    this.player1.play('ogreWalk');
+                }
+            }
+            direction = 'left';
+            ultimateDirection = 'left';
+        }
+
+        if (this.keys.a.isDown && this.keys.s.isUp && computer == false && attack21 == false|| left2 == true && attack21 == false)
+        {
+            this.player2.body.setVelocityX(-150);
+            this.player2.setFlipX(false);
+            if (direction2 == 'none')
+            {
+                if (charecter2 == 'frog')
+                {
+                    this.player2.play('frogWalk');
+                }
+                if (charecter2 == 'robot')
+                {
+                    this.player2.play('robotWalk');
+                }
+                if (charecter2 == 'superHero')
+                {
+                    this.player2.play('superHeroWalk');
+                }
+                if (charecter2 == 'pizzaMan')
+                {
+                    this.player2.play('pizzaManWalk');
+                }
+                if (charecter2 == 'puppet')
+                {
+                    this.player2.play('puppetWalk');
+                }
+                if (charecter2 == 'ogre')
+                {
+                    this.player2.play('ogreWalk');
+                }
+            }
+            direction2 = 'left';
+            ultimateDirection2 = 'left'
+        } 
+
+        if (this.cursors.right.isDown || right1 == true) {
+            this.player1.body.setVelocityX(150);
+            this.player1.setFlipX(true);
+            if (direction == 'none')
+            {
+                if (charecter == 'frog')
+                {
+                    this.player1.play('frogWalk');
+                }
+                if (charecter == 'robot')
+                {
+                    this.player1.play('robotWalk');
+                }
+                if (charecter == 'superHero')
+                {
+                    this.player1.play('superHeroWalk');
+                }
+                if (charecter == 'pizzaMan')
+                {
+                    this.player1.play('pizzaManWalk');
+                }
+                if (charecter == 'puppet')
+                {
+                    this.player1.play('puppetWalk');
+                }
+                if (charecter == 'ogre')
+                {
+                    this.player1.play('ogreWalk');
+                }
+            }
+            direction = 'right';
+            ultimateDirection = 'right';
+        } 
+
+        if (this.keys.d.isDown && this.keys.s.isUp && computer == false && attack21 == false || playerFlip == true || right2 == true && attack21 == false)
+        {
+            this.player2.body.setVelocityX(150);
+            this.player2.setFlipX(true);
+            if (direction2 == 'none')
+            {
+                if (charecter2 == 'frog')
+                {
+                    this.player2.play('frogWalk');
+                }
+                if (charecter2 == 'robot')
+                {
+                    this.player2.play('robotWalk');
+                }
+                if (charecter2 == 'superHero')
+                {
+                    this.player2.play('superHeroWalk');
+                }
+                if (charecter2 == 'pizzaMan')
+                {
+                    this.player2.play('pizzaManWalk');
+                }
+                if (charecter2 == 'puppet')
+                {
+                    this.player2.play('puppetWalk');
+                }
+                if (charecter2 == 'ogre')
+                {
+                    this.player2.play('ogreWalk');
+                }
+            }
+            direction2 = 'right';
+            ultimateDirection2 = 'right';
+        }  
+        //fliping player 2
+        playerFlip = false;
+        //stopping the player
+        if (this.cursors.left.isDown || this.cursors.right.isDown || left1 == true || right1 == true)
+        {
+
+        } else {
+            this.player1.body.setVelocityX(0);
+            if (charecter == 'frog')
+            {
+                this.player1.play('frogIdle');
+            }
+            if (charecter == 'robot')
+            {
+                this.player1.play('robotIdle');
+            }
+            if (charecter == 'superHero')
+            {
+                this.player1.play('superHeroIdle');
+            }
+            if (charecter == 'pizzaMan')
+            {
+                this.player1.play('pizzaManIdle');
+            }
+            if (charecter == 'puppet')
+            {
+                this.player1.play('puppetIdle');
+            }
+            if (charecter == 'ogre')
+            {
+                this.player1.play('ogreIdle');
+            }
+            direction = 'none';
+        }
+
+        if (this.keys.a.isDown && computer == false || this.keys.d.isDown && computer == false || left2 == true || right2 == true)
+        {
+
+        } else {
+            this.player2.body.setVelocityX(0);
+            if (charecter2 == 'frog')
+            {
+                this.player2.play('frogIdle');
+            }
+            if (charecter2 == 'robot')
+            {
+                this.player2.play('robotIdle');
+            }
+            if (charecter2 == 'superHero')
+            {
+                this.player2.play('superHeroIdle');
+            }
+            if (charecter2 == 'pizzaMan')
+            {
+                this.player2.play('pizzaManIdle');
+            }
+            if (charecter2 == 'puppet')
+            {
+                this.player2.play('puppetIdle');
+            }
+            if (charecter2 == 'ogre')
+            {
+                this.player2.play('ogreIdle');
+            }
+            direction2 = 'none';
+        }
+        //allowing the player to jump
+        if (this.cursors.up.isDown && this.player1.body.blocked.down && this.cursors.down.isUp || this.cursors.up.isDown && player1down == true && this.cursors.down.isUp || jump1 == true && this.player1.body.blocked.down && this.cursors.down.isUp || jump1 == true && player1down == true && this.cursors.down.isUp || this.cursors.up.isDown && this.player1.body.blocked.down && attack11 == false || this.cursors.up.isDown && player1down == true && attack11 == false || jump1 == true && this.player1.body.blocked.down && attack11 == false || jump1 == true && player1down == true && attack11 == false)
+        {
+            this.player1.body.setVelocityY(-360);
+        }
+
+        if (this.keys.w.isDown && this.player2.body.blocked.down && this.keys.s.isUp && computer == false || this.keys.w.isDown && computer == false && player2down == true && this.keys.s.isUp || jump2 == true && this.player2.body.blocked.down && attack21 == false || jump2 == true && player2down == true && attack21 == false)
+        {
+            this.player2.body.setVelocityY(-360);
+        }
+        //making sure the players dont go over the edge
+        if (this.player1.x > 1031)
+        {
+            this.player1.x = 1031;
+        }
+        if (this.player1.x < 0)
+        {
+            this.player1.x = 0;
+        }
+
+        if (this.player2.x > 1031)
+        {
+            this.player2.x = 1031;
+        }
+        if (this.player2.x < 0)
+        {
+            this.player2.x = 0;
+        }
+        //making the players attack
+        //player 2 punch
+        if (this.keys.s.isDown && computer == false && this.player2.body.blocked.down && this.keys.a.isUp && this.keys.d.isUp && left2 == false && right2 == false || this.keys.s.isDown && player2down == true && this.keys.a.isUp && computer == false && this.keys.d.isUp && left2 == false && right2 == false || attack21 == true && player2down == true && left2 == false && right2 == false || attack21 == true && this.player2.body.blocked.down && left2 == false && right2 == false)
+        {
+            if (charecter2 == 'frog')
+            {
+                this.player2.play('frogPunch')
+            }
+            if (charecter2 == 'robot')
+            {
+                this.player2.play('robotPunch')
+            }
+            if (charecter2 == 'superHero')
+            {
+                this.player2.play('superHeroPunch')
+            }
+            if (charecter2 == 'pizzaMan')
+            {
+                this.player2.play('pizzaManPunch')
+            }
+            if (charecter2 == 'puppet')
+            {
+                this.player2.play('puppetPunch')
+            }
+            if (charecter2 == 'ogre')
+            {
+                this.player2.play('ogreKick')
+            }
+            this.player2.body.setVelocityX(0);
+            this.player2.body.setVelocityY(0);
+            punch2 += 1;
+        }
+        if (attack21 == false && computer == true)
+        {
+            punch2 = 0;
+        }
+        if (this.keys.s.isUp && computer == false)
+        {
+            punch2 = 0;
+        }
+
+        //player 2 long range attack
+        if (this.keys.e.isDown && this.player2.body.blocked.down && this.keys.a.isUp && this.keys.d.isUp && left2 == false && right2 == false && computer == false || this.keys.e.isDown && player2down == true && this.keys.a.isUp && this.keys.d.isUp && left2 == false && right2 == false && computer == false || attack22 == true && this.player2.body.blocked.down && left2 == false && right2 == false || attack22 == true && player2down == true && left2 == false && right2 == false)
+        {
+            laser2 += 1;
+            if (charecter2 == 'frog')
+            {
+                this.player2.play('frogSpit')
+
+                if (ultimateDirection2 == 'left' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'left' && this.projectile2.x < -100 || ultimateDirection2 == 'left' && this.projectile2.x > 1131 || ultimateDirection2 == 'left' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x - 35, this.player2.y - 38, 'frogSpits').setDisplaySize(20, 20).setVelocityX(-400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+                if (ultimateDirection2 == 'right' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'right' && this.projectile2.x < -100 || ultimateDirection2 == 'right' && this.projectile2.x > 1131 || ultimateDirection2 == 'right' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x + 35, this.player2.y - 38, 'frogSpits').setDisplaySize(20, 20).setVelocityX(400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+
+            }
+            if (charecter2 == 'robot')
+            {
+                this.player2.play('robotLaser')
+
+                if (ultimateDirection2 == 'left' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'left' && this.projectile2.x < -100 || ultimateDirection2 == 'left' && this.projectile2.x > 1131 || ultimateDirection2 == 'left' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x - 45, this.player2.y - 43, 'red').setDisplaySize(30, 22).setVelocityX(-400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+                if (ultimateDirection2 == 'right' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'right' && this.projectile2.x < -100 || ultimateDirection2 == 'right' && this.projectile2.x > 1131 || ultimateDirection2 == 'right' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x + 55, this.player2.y - 43, 'red').setDisplaySize(30, 22).setVelocityX(400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+    
+            }
+            if (charecter2 == 'superHero')
+            {
+                this.player2.play('superHeroBreath')
+
+                if (ultimateDirection2 == 'left' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'left' && this.projectile2.x < -100 || ultimateDirection2 == 'left' && this.projectile2.x > 1131 || ultimateDirection2 == 'left' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x - 25, this.player2.y - 38, 'red').setDisplaySize(20, 10).setVelocityX(-400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+                if (ultimateDirection2 == 'right' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'right' && this.projectile2.x < -100 || ultimateDirection2 == 'right' && this.projectile2.x > 1131 || ultimateDirection2 == 'right' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x + 40, this.player2.y - 38, 'red').setDisplaySize(20, 10).setVelocityX(400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+
+            }
+            if (charecter2 == 'pizzaMan')
+            {
+                this.player2.play('pizzaManCheese')
+
+                if (ultimateDirection2 == 'left' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'left' && this.projectile2.x < -100 || ultimateDirection2 == 'left' && this.projectile2.x > 1131 || ultimateDirection2 == 'left' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x - 45, this.player2.y - 38, 'cheeseBall').setDisplaySize(20, 20).setVelocityX(-400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+                if (ultimateDirection2 == 'right' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'right' && this.projectile2.x < -100 || ultimateDirection2 == 'right' && this.projectile2.x > 1131 || ultimateDirection2 == 'right' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x + 55, this.player2.y - 38, 'cheeseBall').setDisplaySize(20, 20).setVelocityX(400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+
+            }
+            if (charecter2 == 'puppet')
+            {
+                this.player2.play('puppetLaser')
+
+                if (ultimateDirection2 == 'left' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'left' && this.projectile2.x < -100 || ultimateDirection2 == 'left' && this.projectile2.x > 1131 || ultimateDirection2 == 'left' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x - 10, this.player2.y, 'red').setDisplaySize(40, 10).setVelocityX(-400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+                if (ultimateDirection2 == 'right' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'right' && this.projectile2.x < -100 || ultimateDirection2 == 'right' && this.projectile2.x > 1131 || ultimateDirection2 == 'right' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x + 50, this.player2.y, 'red').setDisplaySize(40, 10).setVelocityX(400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+
+            }
+            if (charecter2 == 'ogre')
+            {
+                this.player2.play('ogreLaser')
+
+                if (ultimateDirection2 == 'left' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'left' && this.projectile2.x < -100 || ultimateDirection2 == 'left' && this.projectile2.x > 1131 || ultimateDirection2 == 'left' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x - 30, this.player2.y - 20, 'red').setDisplaySize(40, 20).setVelocityX(-400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+                if (ultimateDirection2 == 'right' && laser2 == 1 && laser21 == 0 || ultimateDirection2 == 'right' && this.projectile2.x < -100 || ultimateDirection2 == 'right' && this.projectile2.x > 1131 || ultimateDirection2 == 'right' && this.projectile2.y > 680)
+                {
+                    this.projectile2 = this.physics.add.sprite(this.player2.x + 60, this.player2.y - 20, 'red').setDisplaySize(40, 20).setVelocityX(400);
+                    this.projectile2.body.setImmovable(true);
+                    this.projectile2.body.setAllowGravity(false);
+                }
+
+            }
+            this.player2.body.setVelocityX(0);
+            this.player2.body.setVelocityY(0);
+            laser21 = 1;
+        }
+
+        //player 2 jump long range attack
+        if (this.keys.e.isDown && this.keys.a.isUp && this.keys.d.isUp && left2 == false && right2 == false && player2down == false && computer == false || attack22 == true && left2 == false && right2 == false && player2down == false)
+        {
+            if (this.player2.body.blocked.down)
+            {
+
+            } else {
+                laser221 += 1;
+                if (charecter2 == 'frog')
+                {
+                    this.player2.play('frogKick')
+
+                    if (ultimateDirection2 == 'left' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'left' && this.projectile22.x < -100 || ultimateDirection2 == 'left' && this.projectile22.x > 1131 || ultimateDirection2 == 'left' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x - 35, this.player2.y - 38, 'frogSpits').setDisplaySize(20, 20).setVelocityX(-400);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection2 == 'right' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'right' && this.projectile22.x < -100 || ultimateDirection2 == 'right' && this.projectile22.x > 1131 || ultimateDirection2 == 'right' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x + 35, this.player2.y - 38, 'frogSpits').setDisplaySize(20, 20).setVelocityX(400);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+
+                }
+                if (charecter2 == 'robot')
+                {
+                    this.player2.play('robotSuperLaser')
+
+                    if (ultimateDirection2 == 'left' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'left' && this.projectile22.x < -100 || ultimateDirection2 == 'left' && this.projectile22.x > 1131 || ultimateDirection2 == 'left' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x - 45, this.player2.y, 'frogSpits').setDisplaySize(30, 30).setTint(0xff0000).setVelocityX(-400);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection2 == 'right' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'right' && this.projectile22.x < -100 || ultimateDirection2 == 'right' && this.projectile22.x > 1131 || ultimateDirection2 == 'right' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x + 55, this.player2.y, 'frogSpits').setTint(0xff0000).setDisplaySize(30, 30).setVelocityX(400);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+        
+                }
+                if (charecter2 == 'superHero')
+                {
+                    this.player2.play('superHeroFootFire')
+
+                    if (ultimateDirection2 == 'left' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'left' && this.projectile22.x < -100 || ultimateDirection2 == 'left' && this.projectile22.x > 1131 || ultimateDirection2 == 'left' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x - 50, this.player2.y + 10, 'red').setDisplaySize(20, 10).setVelocityX(-400);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection2 == 'right' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'right' && this.projectile22.x < -100 || ultimateDirection2 == 'right' && this.projectile22.x > 1131 || ultimateDirection2 == 'right' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x + 60, this.player2.y + 10, 'red').setDisplaySize(20, 10).setVelocityX(400);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+
+                }
+                if (charecter2 == 'pizzaMan')
+                {
+                    this.player2.play('pizzaManPepperoni')
+
+                    if (ultimateDirection2 == 'left' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'left' && this.projectile22.x < -100 || ultimateDirection2 == 'left' && this.projectile22.x > 1131 || ultimateDirection2 == 'left' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x - 50, this.player2.y - 10, 'cheeseBall').setDisplaySize(20, 20).setVelocityX(-400).setTint(0xff0000);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection2 == 'right' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'right' && this.projectile22.x < -100 || ultimateDirection2 == 'right' && this.projectile22.x > 1131 || ultimateDirection2 == 'right' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x + 50, this.player2.y - 10, 'cheeseBall').setDisplaySize(20, 20).setVelocityX(400).setTint(0xff0000);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+
+                }
+                if (charecter2 == 'puppet')
+                {
+                    this.player2.play('puppetInvert')
+
+                    if (ultimateDirection2 == 'left' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'left' && this.projectile22.x < -100 || ultimateDirection2 == 'left' && this.projectile22.x > 1131 || ultimateDirection2 == 'left' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x, this.player2.y, 'puppetWalk2').setVelocityX(-400);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection2 == 'right' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'right' && this.projectile22.x < -100 || ultimateDirection2 == 'right' && this.projectile22.x > 1131 || ultimateDirection2 == 'right' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x, this.player2.y, 'puppetWalk2').setVelocityX(400).setFlipX(true);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+
+                }
+                if (charecter2 == 'ogre')
+                {
+                    this.player2.play('ogreEyeless')
+
+                    if (ultimateDirection2 == 'left' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'left' && this.projectile22.x < -100 || ultimateDirection2 == 'left' && this.projectile22.x > 1131 || ultimateDirection2 == 'left' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x - 30, this.player2.y - 20, 'ogreEye').setVelocityX(-400);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection2 == 'right' && laser221 == 1 && laser222 == 0 || ultimateDirection2 == 'right' && this.projectile22.x < -100 || ultimateDirection2 == 'right' && this.projectile22.x > 1131 || ultimateDirection2 == 'right' && this.projectile22.y > 680)
+                    {
+                        this.projectile22 = this.physics.add.sprite(this.player2.x + 60, this.player2.y - 20, 'ogreEye').setVelocityX(400).setFlipX(true);
+                        this.projectile22.body.setImmovable(true);
+                        this.projectile22.body.setAllowGravity(false);
+                    }
+
+                }
+                this.player2.body.setVelocityX(0);
+                laser222 = 1;
+            }
+        }
+
+        //creating the player 1 punch attack
+        if (this.cursors.down.isDown && this.player1.body.blocked.down && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || this.cursors.down.isDown && player1down == true && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || attack11 == true && this.player1.body.blocked.down && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || attack11 == true && player1down == true && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || attack11 == true && this.player1.body.blocked.down && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || attack11 == true && player1down == true && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || attack11 == true && this.player1.body.blocked.down && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || attack11 == true && player1down == true && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false)
+        {
+            if (charecter == 'frog')
+            {
+                this.player1.play('frogPunch')
+            }
+            if (charecter == 'robot')
+            {
+                this.player1.play('robotPunch')
+            }
+            if (charecter == 'superHero')
+            {
+                this.player1.play('superHeroPunch')
+            }
+            if (charecter == 'pizzaMan')
+            {
+                this.player1.play('pizzaManPunch')
+            }
+            if (charecter == 'puppet')
+            {
+                this.player1.play('puppetPunch')
+            }
+            if (charecter == 'ogre')
+            {
+                this.player1.play('ogreKick')
+            }
+            this.player1.body.setVelocityX(0);
+            this.player1.body.setVelocityY(0);
+            punch += 1;
+        }
+        if (this.cursors.down.isUp && attack11 == false)
+        {
+            punch = 0;
+        }
+
+
+        //player 1 long range attack
+        if (this.keys.shift.isDown && this.player1.body.blocked.down && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || this.keys.shift.isDown && player1down == true && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || attack12 == true && this.player1.body.blocked.down && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false || attack12 == true && player1down == true && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false)
+        {
+            laser1 += 1;
+            if (charecter == 'frog')
+            {
+                this.player1.play('frogSpit')
+
+                if (ultimateDirection == 'left' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'left' && this.projectile1.x < -100 || ultimateDirection == 'left' && this.projectile1.x > 1131 || ultimateDirection == 'left' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x - 35, this.player1.y - 38, 'frogSpits').setDisplaySize(20, 20).setVelocityX(-400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+                if (ultimateDirection == 'right' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'right' && this.projectile1.x < -100 || ultimateDirection == 'right' && this.projectile1.x > 1131 || ultimateDirection == 'right' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x + 35, this.player1.y - 38, 'frogSpits').setDisplaySize(20, 20).setVelocityX(400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+
+            }
+            if (charecter == 'robot')
+            {
+                this.player1.play('robotLaser')
+
+                if (ultimateDirection == 'left' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'left' && this.projectile1.x < -100 || ultimateDirection == 'left' && this.projectile1.x > 1131 || ultimateDirection == 'left' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x - 45, this.player1.y - 43, 'red').setDisplaySize(30, 22).setVelocityX(-400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+                if (ultimateDirection == 'right' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'right' && this.projectile1.x < -100 || ultimateDirection == 'right' && this.projectile1.x > 1131 || ultimateDirection == 'right' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x + 55, this.player1.y - 43, 'red').setDisplaySize(30, 22).setVelocityX(400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+    
+            }
+            if (charecter == 'superHero')
+            {
+                this.player1.play('superHeroBreath')
+
+                if (ultimateDirection == 'left' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'left' && this.projectile1.x < -100 || ultimateDirection == 'left' && this.projectile1.x > 1131 || ultimateDirection == 'left' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x - 25, this.player1.y - 38, 'red').setDisplaySize(20, 10).setVelocityX(-400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+                if (ultimateDirection == 'right' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'right' && this.projectile1.x < -100 || ultimateDirection == 'right' && this.projectile1.x > 1131 || ultimateDirection == 'right' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x + 40, this.player1.y - 38, 'red').setDisplaySize(20, 10).setVelocityX(400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+
+            }
+            if (charecter == 'pizzaMan')
+            {
+                this.player1.play('pizzaManCheese')
+
+                if (ultimateDirection == 'left' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'left' && this.projectile1.x < -100 || ultimateDirection == 'left' && this.projectile1.x > 1131 || ultimateDirection == 'left' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x - 45, this.player1.y - 38, 'cheeseBall').setDisplaySize(20, 20).setVelocityX(-400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+                if (ultimateDirection == 'right' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'right' && this.projectile1.x < -100 || ultimateDirection == 'right' && this.projectile1.x > 1131 || ultimateDirection == 'right' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x + 55, this.player1.y - 38, 'cheeseBall').setDisplaySize(20, 20).setVelocityX(400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+
+            }
+            if (charecter == 'puppet')
+            {
+                this.player1.play('puppetLaser')
+
+                if (ultimateDirection == 'left' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'left' && this.projectile1.x < -100 || ultimateDirection == 'left' && this.projectile1.x > 1131 || ultimateDirection == 'left' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x - 10, this.player1.y, 'red').setDisplaySize(40, 10).setVelocityX(-400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+                if (ultimateDirection == 'right' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'right' && this.projectile1.x < -100 || ultimateDirection == 'right' && this.projectile1.x > 1131 || ultimateDirection == 'right' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x + 50, this.player1.y, 'red').setDisplaySize(40, 10).setVelocityX(400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+
+            }
+            if (charecter == 'ogre')
+            {
+                this.player1.play('ogreLaser')
+
+                if (ultimateDirection == 'left' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'left' && this.projectile1.x < -100 || ultimateDirection == 'left' && this.projectile1.x > 1131 || ultimateDirection == 'left' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x - 30, this.player1.y - 20, 'red').setDisplaySize(40, 20).setVelocityX(-400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+                if (ultimateDirection == 'right' && laser1 == 1 && laser11 == 0 || ultimateDirection == 'right' && this.projectile1.x < -100 || ultimateDirection == 'right' && this.projectile1.x > 1131 || ultimateDirection == 'right' && this.projectile1.y > 680)
+                {
+                    this.projectile1 = this.physics.add.sprite(this.player1.x + 60, this.player1.y - 20, 'red').setDisplaySize(40, 20).setVelocityX(400);
+                    this.projectile1.body.setImmovable(true);
+                    this.projectile1.body.setAllowGravity(false);
+                }
+
+            }
+            this.player1.body.setVelocityX(0);
+            this.player1.body.setVelocityY(0);
+            laser11 = 1;
+        }
+
+        //creating the player 1 jump down attack
+        if (this.cursors.down.isDown && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false && player1down == false || attack11 == true && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false && player1down == false)
+        {
+            if (this.player1.body.blocked.down)
+            {
+
+            } else {
+                down1 += 1;
+                if (charecter == 'frog')
+                {
+                    this.player1.play('frogFart')
+
+                    if (down1 == 1 && down2 == 0 || this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x, this.player1.y + 50, 'frogSpits').setDisplaySize(15, 30).setTint(0xaa5500);
+                    }
+                }
+                if (charecter == 'robot')
+                {
+                    this.player1.play('robotDownAttack')
+
+                    if (ultimateDirection == 'left' && down1 == 1 && down2 == 0 || ultimateDirection == 'left' && this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x - 50, this.player1.y + 20, 'frogSpits').setDisplaySize(30, 30).setTint(0xff0000);
+                    }
+                    if (ultimateDirection == 'right' && down1 == 1 && down2 == 0 || ultimateDirection == 'right' && this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x + 50, this.player1.y + 20, 'frogSpits').setTint(0xff0000).setDisplaySize(30, 30);
+                    }
+        
+                }
+                if (charecter == 'superHero')
+                {
+                    this.player1.play('superHeroFootRocket')
+
+                    if (down1 == 1 && down2 == 0 || this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x, this.player1.y + 100, 'red').setDisplaySize(10, 40);
+                    }
+
+                }
+                if (charecter == 'pizzaMan')
+                {
+                    this.player1.play('pizzaManSauce')
+
+                    if (ultimateDirection == 'left' && down1 == 1 && down2 == 0 || ultimateDirection == 'left' && this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x + 50, this.player1.y + 40, 'cheeseBall').setDisplaySize(20, 20).setTint(0xff0000);
+                    }
+                    if (ultimateDirection == 'right' && down1 == 1 && down2 == 0 || ultimateDirection == 'right' && this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x - 50, this.player1.y + 40, 'cheeseBall').setDisplaySize(20, 20).setTint(0xff0000);
+                    }
+
+                }
+                if (charecter == 'puppet')
+                {
+                    this.player1.play('puppetDownAttack')
+
+                    if (down1 == 1 && down2 == 0 || this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x, this.player1.y + 110, 'red').setDisplaySize(15, 40);
+                    }
+
+                }
+                if (charecter == 'ogre')
+                {
+                    this.player1.play('ogreLegfull')
+
+                    if (ultimateDirection == 'left' && down1 == 1 && down2 == 0 || ultimateDirection == 'left' && this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x, this.player1.y - 20, 'ogreBomb').setVelocityY(200);
+                    }
+                    if (ultimateDirection == 'right' && down1 == 1 && down2 == 0 || ultimateDirection == 'right' && this.projectile111.y > 780)
+                    {
+                        this.projectile111 = this.physics.add.sprite(this.player1.x, this.player1.y - 20, 'ogreBomb').setVelocityY(200).setFlipX(true);
+                    }
+                }
+                this.player1.body.setVelocityX(0);
+                down2 = 1;
+            }
+        }
+
+        //creating the player 2 jump down attack
+        if (this.keys.s.isDown && this.keys.a.isUp && this.keys.d.isUp && left2 == false && right2 == false && player2down == false && computer == false || attack21 == true && left2 == false && right2 == false && player2down == false)
+        {
+            if (this.player2.body.blocked.down)
+            {
+
+            } else {
+                down21 += 1;
+                if (charecter2 == 'frog')
+                {
+                    this.player2.play('frogFart')
+
+                    if (down21 == 1 && down22 == 0 || this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x, this.player2.y + 50, 'frogSpits').setDisplaySize(15, 30).setTint(0xaa5500);
+                    }
+                }
+                if (charecter2 == 'robot')
+                {
+                    this.player2.play('robotDownAttack')
+
+                    if (ultimateDirection2 == 'left' && down21 == 1 && down22 == 0 || ultimateDirection2 == 'left' && this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x - 50, this.player2.y + 20, 'frogSpits').setDisplaySize(30, 30).setTint(0xff0000);
+                    }
+                    if (ultimateDirection2 == 'right' && down21 == 1 && down22 == 0 || ultimateDirection2 == 'right' && this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x + 50, this.player2.y + 20, 'frogSpits').setTint(0xff0000).setDisplaySize(30, 30);
+                    }
+        
+                }
+                if (charecter2 == 'superHero')
+                {
+                    this.player2.play('superHeroFootRocket')
+
+                    if (down21 == 1 && down22 == 0 || this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x, this.player2.y + 100, 'red').setDisplaySize(10, 40);
+                    }
+
+                }
+                if (charecter2 == 'pizzaMan')
+                {
+                    this.player2.play('pizzaManSauce')
+
+                    if (ultimateDirection2 == 'left' && down21 == 1 && down22 == 0 || ultimateDirection2 == 'left' && this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x + 50, this.player2.y + 40, 'cheeseBall').setDisplaySize(20, 20).setTint(0xff0000);
+                    }
+                    if (ultimateDirection2 == 'right' && down21 == 1 && down22 == 0 || ultimateDirection2 == 'right' && this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x - 50, this.player2.y + 40, 'cheeseBall').setDisplaySize(20, 20).setTint(0xff0000);
+                    }
+
+                }
+                if (charecter2 == 'puppet')
+                {
+                    this.player2.play('puppetDownAttack')
+
+                    if (down21 == 1 && down22 == 0 || this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x, this.player2.y + 110, 'red').setDisplaySize(15, 40);
+                    }
+
+                }
+                if (charecter2 == 'ogre')
+                {
+                    this.player2.play('ogreLegfull')
+
+                    if (ultimateDirection2 == 'left' && down21 == 1 && down22 == 0 || ultimateDirection2 == 'left' && this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x, this.player2.y - 20, 'ogreBomb').setVelocityY(200);
+                    }
+                    if (ultimateDirection2 == 'right' && down21 == 1 && down22 == 0 || ultimateDirection2 == 'right' && this.projectile222.y > 780)
+                    {
+                        this.projectile222 = this.physics.add.sprite(this.player2.x, this.player2.y - 20, 'ogreBomb').setVelocityY(200).setFlipX(true);
+                    }
+                }
+                this.player2.body.setVelocityX(0);
+                down22 = 1;
+            }
+        }
+
+        //player 1 jump long range attack
+        if (this.keys.shift.isDown && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false && player1down == false || attack12 == true && this.cursors.left.isUp && this.cursors.right.isUp && left1 == false && right1 == false && player1down == false)
+        {
+            if (this.player1.body.blocked.down)
+            {
+
+            } else {
+                laser111 += 1;
+                if (charecter == 'frog')
+                {
+                    this.player1.play('frogKick')
+
+                    if (ultimateDirection == 'left' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'left' && this.projectile11.x < -100 || ultimateDirection == 'left' && this.projectile11.x > 1131 || ultimateDirection == 'left' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x - 35, this.player1.y - 38, 'frogSpits').setDisplaySize(20, 20).setVelocityX(-400);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection == 'right' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'right' && this.projectile11.x < -100 || ultimateDirection == 'right' && this.projectile11.x > 1131 || ultimateDirection == 'right' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x + 35, this.player1.y - 38, 'frogSpits').setDisplaySize(20, 20).setVelocityX(400);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+
+                }
+                if (charecter == 'robot')
+                {
+                    this.player1.play('robotSuperLaser')
+
+                    if (ultimateDirection == 'left' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'left' && this.projectile11.x < -100 || ultimateDirection == 'left' && this.projectile11.x > 1131 || ultimateDirection == 'left' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x - 45, this.player1.y, 'frogSpits').setDisplaySize(30, 30).setTint(0xff0000).setVelocityX(-400);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection == 'right' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'right' && this.projectile11.x < -100 || ultimateDirection == 'right' && this.projectile11.x > 1131 || ultimateDirection == 'right' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x + 55, this.player1.y, 'frogSpits').setTint(0xff0000).setDisplaySize(30, 30).setVelocityX(400);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+        
+                }
+                if (charecter == 'superHero')
+                {
+                    this.player1.play('superHeroFootFire')
+
+                    if (ultimateDirection == 'left' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'left' && this.projectile11.x < -100 || ultimateDirection == 'left' && this.projectile11.x > 1131 || ultimateDirection == 'left' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x - 50, this.player1.y + 10, 'red').setDisplaySize(20, 10).setVelocityX(-400);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection == 'right' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'right' && this.projectile11.x < -100 || ultimateDirection == 'right' && this.projectile11.x > 1131 || ultimateDirection == 'right' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x + 60, this.player1.y + 10, 'red').setDisplaySize(20, 10).setVelocityX(400);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+
+                }
+                if (charecter == 'pizzaMan')
+                {
+                    this.player1.play('pizzaManPepperoni')
+
+                    if (ultimateDirection == 'left' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'left' && this.projectile11.x < -100 || ultimateDirection == 'left' && this.projectile11.x > 1131 || ultimateDirection == 'left' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x - 50, this.player1.y - 10, 'cheeseBall').setDisplaySize(20, 20).setVelocityX(-400).setTint(0xff0000);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection == 'right' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'right' && this.projectile11.x < -100 || ultimateDirection == 'right' && this.projectile11.x > 1131 || ultimateDirection == 'right' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x + 50, this.player1.y - 10, 'cheeseBall').setDisplaySize(20, 20).setVelocityX(400).setTint(0xff0000);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+
+                }
+                if (charecter == 'puppet')
+                {
+                    this.player1.play('puppetInvert')
+
+                    if (ultimateDirection == 'left' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'left' && this.projectile11.x < -100 || ultimateDirection == 'left' && this.projectile11.x > 1131 || ultimateDirection == 'left' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x, this.player1.y, 'puppetWalk2').setVelocityX(-400);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection == 'right' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'right' && this.projectile11.x < -100 || ultimateDirection == 'right' && this.projectile11.x > 1131 || ultimateDirection == 'right' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x, this.player1.y, 'puppetWalk2').setVelocityX(400).setFlipX(true);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+
+                }
+                if (charecter == 'ogre')
+                {
+                    this.player1.play('ogreEyeless')
+
+                    if (ultimateDirection == 'left' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'left' && this.projectile11.x < -100 || ultimateDirection == 'left' && this.projectile11.x > 1131 || ultimateDirection == 'left' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x - 30, this.player1.y - 20, 'ogreEye').setVelocityX(-400);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+                    if (ultimateDirection == 'right' && laser111 == 1 && laser112 == 0 || ultimateDirection == 'right' && this.projectile11.x < -100 || ultimateDirection == 'right' && this.projectile11.x > 1131 || ultimateDirection == 'right' && this.projectile11.y > 680)
+                    {
+                        this.projectile11 = this.physics.add.sprite(this.player1.x + 60, this.player1.y - 20, 'ogreEye').setVelocityX(400).setFlipX(true);
+                        this.projectile11.body.setImmovable(true);
+                        this.projectile11.body.setAllowGravity(false);
+                    }
+
+                }
+                this.player1.body.setVelocityX(0);
+                laser112 = 1;
+            }
+        }
+
+        //making the first variables for all the player1 attacks become zero when shift is not pressed
+        if (this.keys.shift.isUp && attack12 == false)
+        {
+            laser1 = 0;
+            laser111 = 0;
+        }
+        if (this.cursors.down.isUp && attack11 == false)
+        {
+            down1 = 0;
+        }
+
+        //making all the first variables for player2 attacks become zero when e is not being pressed
+        if (this.keys.e.isUp && computer == false || attack22 == false)
+        {
+            laser2 = 0;
+            laser221 = 0;
+        }
+        if (this.keys.s.isUp && computer == false || attack21 == false)
+        {
+            down21 = 0;
+        }
+
+        //updating for the treehouse level...
+        if (map == 'treeHouse')
+        {
+            if (this.upDownWood.y > 362)
+            {
+                this.upDownWood.setVelocityY(-100);
+            }  
+            if (this.upDownWood.y < 0) 
+            {
+                this.upDownWood.setVelocityY(100);
+            }
+        }
+        //updating for burger level
+        if (map == 'burger')
+        {
+            if (this.ketchup2.x > 900)
+            {
+                this.ketchup2.setVelocityX(-100);
+            }  
+            if (this.ketchup2.x < 500) 
+            {
+                this.ketchup2.setVelocityX(100);
+            }
+        }
+        //updating for the swamp arena
+        if (map == 'swamp')
+        {
+            if (this.log.x < 800)
+            {
+                this.log.setVelocityX(10);
+            }
+            if (this.log.x > 931)
+            {
+                this.log.setVelocityX(-10);
+            }
+
+            if (this.player1.y > 580 + 150)
+            {
+                this.player1.y = -150;
+            }
+            if (this.player2.y > 580 + 150)
+            {
+                this.player2.y = -150;
+            }
+        }
+        //updating for palace arena
+        if (map == 'puppetPalace')
+        {
+            if (this.movingPlatform1.x < 320)
+            {
+                this.movingPlatform1.setVelocityX(100);
+            }
+            if (this.movingPlatform1.x > 710)
+            {
+                this.movingPlatform1.setVelocityX(-100);
+            }
+
+            if (this.movingPlatform3.x < 320)
+            {
+                this.movingPlatform3.setVelocityX(100);
+            }
+            if (this.movingPlatform3.x > 710)
+            {
+                this.movingPlatform3.setVelocityX(-100);
+            }
+        }
+        //updating for robot city
+        if (map == 'robotCity')
+        {
+            this.gear.angle += 3;
+            this.gear2.angle -= 3;
+            this.gear3.angle += 3;
+            this.gear4.angle -= 3;
+            this.gear5.angle -= 3;
+            this.gear6.angle += 3;
+            this.gear7.angle -= 3;
+            this.gear8.angle += 3;
+        }
+        //updating player tags
+        this.player1Tag.x = this.player1.x;
+        this.player1Tag.y = this.player1.y - 100;
+        this.player2Tag.x = this.player2.x;
+        this.player2Tag.y = this.player2.y - 100;
+        //making the other scene start when you win or lose
+        if (health1 == 0)
+        {
+            this.scene.start('playerWin');
+            this.scene.stop('Fight');
+        }
+        if (health2 == 0)
+        {
+            this.scene.start('playerWin');
+            this.scene.stop('Fight');
+        }
+        if (health2 == 0 || health1 == 0)
+        {
+            //stopping music
+            if (map == 'treeHouse')
+            {
+                this.hopesAndDreams.stop();
+            }
+            if (map == 'burger')
+            {
+                this.bonetrousle.stop();
+            }
+            if (map == 'boxingRing')
+            {
+                this.spiderDance.stop();
+            }
+            if (map == 'newYork')
+            {
+                this.deathByGlamour.stop();
+            }
+            if (map == 'puppetShow')
+            {
+                this.asgore.stop();
+            }
+            if (map == 'swamp')
+            {
+                this.ghostFight.stop();
+            }
+            if (map == 'pizzaPlace')
+            {
+                this.heroBattle.stop();
+            }
+            if (map == 'puppetPalace')
+            {
+                this.lastBreath2.stop();
+            }
+            if (map == 'binary')
+            {
+                this.anticipation.stop();
+            }
+            if (map == 'robotCity')
+            {
+                this.metalCrusher.stop();
+            }
+        }
+        //making the camera go higher with the player
+        if (this.player1.y < 100 || this.player2.y < 100)
+        {
+            this.cameras.main.scrollY -= 5;
+        }
+        if (this.cameras.main.scrollY < -150)
+        {
+            this.cameras.main.scrollY = -150;
+        }
+        if (this.player1.y > 100 && this.player2.y > 100)
+        {
+            this.cameras.main.scrollY += 5;
+        }
+        if (this.cameras.main.scrollY > 0)
+        {
+            this.cameras.main.scrollY = 0;
+        }
+        //doing stuff that is needed to be done at the end of the update function
+        //making the playerdown variable false
+        player1down = false;
+        player2down = false;
+
+        //making the knockback work
+        if (knockback1 == true)
+        {
+            if (this.player2.x < this.player1.x)
+            {
+                this.player1.setVelocityX(100);
+            }
+            if (this.player2.x > this.player1.x)
+            {
+                this.player1.setVelocityX(-100);
+            }
+            setTimeout(playerNormal1, 1000);
+            this.player1.setTint(0xff0000);
+        }
+        if (projectileKnockback1Left == true)
+        {
+            this.player1.setVelocityX(-100);
+        }
+        if (projectileKnockback1Right == true)
+        {
+            this.player1.setVelocityX(100);
+        }
+        function playerNormal1()
+        {
+            projectileKnockback1Left = false;
+            projectileKnockback1Right = false;
+            knockback1 = false;
+            player1.setVelocityX(0);
+        }
+        if (knockback1 == false)
+        {
+            this.player1.clearTint();
+        }
+
+        if (knockback2 == true)
+        {
+            if (this.player1.x < this.player2.x)
+            {
+                this.player2.setVelocityX(100);
+            }
+            if (this.player1.x > this.player2.x)
+            {
+                this.player2.setVelocityX(-100);
+            }
+            setTimeout(playerNormal2, 1000);
+            this.player2.setTint(0xff0000);
+        }
+        if (projectileKnockback2Left == true)
+        {
+            this.player2.setVelocityX(-100);
+        }
+        if (projectileKnockback2Right == true)
+        {
+            this.player2.setVelocityX(100);
+        }
+        function playerNormal2()
+        {
+            projectileKnockback2Left = false;
+            projectileKnockback2Right = false;
+            knockback2 = false;
+            player2.setVelocityX(0);
+        }
+        if (knockback2 == false)
+        {
+            this.player2.clearTint();
+        }
+
+        //rounding the health
+        health1 = Math.round(health1);
+        health2 = Math.round(health2);
+        this.percentage1.setText(health1/2 + '%');
+        this.percentage2.setText(health2/2 + '%');
+    }
+}
+
+//creating the scene that starts when a player wins
+class playerWin extends Phaser.Scene
+{
+    constructor()
+    {
+        super("playerWin")
+    }
+
+    preload()
+    {
+        this.load.image('frogLose', 'frogLose.png')
+        this.load.image('robotLose', 'robotLose.png')
+        this.load.image('superHeroLose', 'superHeroLose.png')
+        this.load.image('pizzaManLose', 'pizzaManLose.png')
+        this.load.image('puppetLose', 'puppetLose.png')
+        this.load.image('ogreLose', 'ogreLose.png')
+    }
+
+    create()
+    {
+        //adding sound effects
+        this.beepBoop = this.sound.add("beepBoop");
+        this.input.on('pointerdown', function()
+        {
+            this.beepBoop.play();
+        }, this)
+        var musicConfig = {
+            loop: true
+        }
+        this.home = this.sound.add("home");
+        this.home.play(musicConfig);
+        //everything else
+        var clickText = this.add.bitmapText(300, 450, 'hyper', 'click here to continue', 32).setOrigin(0.5).setInteractive({ cursor: 'pointer' });
+        clickText.on('pointerover', function()
+        {
+            clickText.setScale(1.2);
+        }, this)
+        clickText.on('pointerdown', function()
+        {
+            location.reload();
+        }, this)
+        var winText = this.add.bitmapText(650, 200, 'hyper', ' ', 64).setOrigin(0.5);
+        if (health1 == 0)
+        {
+            winText.setText('PLAYER 2 WINS');
+
+            if (charecter == 'frog')
+            {
+                this.add.image(700, 450, 'frogLose')
+            }
+            if (charecter == 'robot')
+            {
+                this.add.image(700, 450, 'robotLose')
+            }
+            if (charecter == 'superHero')
+            {
+                this.add.image(700, 450, 'superHeroLose')
+            }
+            if (charecter == 'pizzaMan')
+            {
+                this.add.image(700, 450, 'pizzaManLose')
+            }
+            if (charecter == 'puppet')
+            {
+                this.add.image(700, 450, 'puppetLose')
+            }
+            if (charecter == 'ogre')
+            {
+                this.add.image(700, 450, 'ogreLose')
+            }
+
+            if (charecter2 == 'frog')
+            {
+                this.add.image(300, 200, 'frogWin').setScale(1.5);
+            }
+            if (charecter2 == 'robot')
+            {
+                this.add.image(300, 200, 'robotWin').setScale(1.5);
+            }
+            if (charecter2 == 'superHero')
+            {
+                this.add.image(300, 200, 'superHeroWin').setScale(1.5);
+            }
+            if (charecter2 == 'pizzaMan')
+            {
+                this.add.image(300, 200, 'pizzaManWin').setScale(1.5);
+            }
+            if (charecter2 == 'puppet')
+            {
+                this.add.image(300, 200, 'puppetWin').setScale(1.5);
+            }
+            if (charecter2 == 'ogre')
+            {
+                this.add.image(300, 200, 'ogreWin').setScale(1.5);
+            }
+        }
+        if (health2 == 0)
+        {
+            winText.setText('PLAYER 1 WINS');
+
+            if (charecter2 == 'frog')
+            {
+                this.add.image(700, 450, 'frogLose')
+            }
+            if (charecter2 == 'robot')
+            {
+                this.add.image(700, 450, 'robotLose')
+            }
+            if (charecter2 == 'superHero')
+            {
+                this.add.image(700, 450, 'superHeroLose')
+            }
+            if (charecter2 == 'pizzaMan')
+            {
+                this.add.image(700, 450, 'pizzaManLose')
+            }
+            if (charecter2 == 'puppet')
+            {
+                this.add.image(700, 450, 'puppetLose')
+            }
+            if (charecter2 == 'ogre')
+            {
+                this.add.image(700, 450, 'ogreLose')
+            }
+
+            if (charecter == 'frog')
+            {
+                this.add.image(300, 200, 'frogWin').setScale(1.5);
+            }
+            if (charecter == 'robot')
+            {
+                this.add.image(300, 200, 'robotWin').setScale(1.5);
+            }
+            if (charecter == 'superHero')
+            {
+                this.add.image(300, 200, 'superHeroWin').setScale(1.5);
+            }
+            if (charecter == 'pizzaMan')
+            {
+                this.add.image(300, 200, 'pizzaManWin').setScale(1.5);
+            }
+            if (charecter == 'puppet')
+            {
+                this.add.image(300, 200, 'puppetWin').setScale(1.5);
+            }
+            if (charecter == 'ogre')
+            {
+                this.add.image(300, 200, 'ogreWin').setScale(1.5);
+            }
+        }
+    }
+}
+
+const config = {
+    type: Phaser.WEBGL,
+    width: 1031,
+    height: 580,
+    backgroundColor: 0xd3d3d3,
+    scene: [ Menu, Controls, ChooseCharecter, ChooseCharecter2, ChooseMap, Fight, playerWin ],
+    physics: 
+    {
+        default: 'arcade',
+        arcade: {
+            //you can change the gravity or debug anytime you want pookie
+            gravity: { y: 300 },
+            fps: 60,
+            debug: false
+        }
+    }
+}
+
+var game = new Phaser.Game(config);
+
+</script>
+
+</body>
+</html>
